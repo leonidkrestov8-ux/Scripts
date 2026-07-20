@@ -1,256 +1,94 @@
 -- ============================================
--- GROW A GARDEN 2 - RAYFIELD MENU
--- Авто-сбор | Авто-посадка | Авто-продажа | Авто-покупка
--- Версия: 1.0 | Автор: Лёня
+-- GROW A GARDEN 2 - ПРОСТОЕ МЕНЮ (без Rayfield)
 -- ============================================
 
--- Подключаем Rayfield
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local player = game.Players.LocalPlayer
 
--- ===================== НАСТРОЙКИ =====================
-local Settings = {
-    AutoHarvest = false,
-    AutoPlant = false,
-    AutoSell = false,
-    AutoBuy = false,
-    HarvestRange = 50,
-    TargetSeed = "Bamboo"
-}
+-- Создаём GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = player:WaitForChild("PlayerGui")
 
--- ===================== ОСНОВНЫЕ ФУНКЦИИ =====================
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 250, 0, 400)
+mainFrame.Position = UDim2.new(0.5, -125, 0.5, -200)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+mainFrame.BackgroundTransparency = 0.1
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.Parent = screenGui
 
--- Получить свой участок
-local function getMyPlot()
-    local plots = workspace:FindFirstChild("Plots")
-    if not plots then return nil end
+-- Заголовок
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 30)
+title.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+title.Text = "🌱 Grow a Garden 2"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextScaled = true
+title.Font = Enum.Font.GothamBold
+title.Parent = mainFrame
+
+-- Функция создания кнопки-переключателя
+local function CreateToggle(y, text, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0.9, 0, 0, 30)
+    btn.Position = UDim2.new(0.05, 0, 0, y)
+    btn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+    btn.BorderSizePixel = 0
+    btn.Text = "❌ " .. text
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.TextScaled = true
+    btn.Font = Enum.Font.GothamBold
+    btn.Parent = mainFrame
     
-    for _, plot in ipairs(plots:GetChildren()) do
-        local owner = plot:FindFirstChild("Owner")
-        if owner and owner.Value == game.Players.LocalPlayer.Name then
-            return plot
+    local enabled = false
+    btn.MouseButton1Click:Connect(function()
+        enabled = not enabled
+        if enabled then
+            btn.BackgroundColor3 = Color3.fromRGB(0, 200, 50)
+            btn.Text = "✅ " .. text
+        else
+            btn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+            btn.Text = "❌ " .. text
         end
-    end
-    return nil
+        callback(enabled)
+    end)
+    
+    return function() return enabled end
 end
 
--- 1. АВТО-СБОР
-local function AutoHarvest()
-    local plot = getMyPlot()
-    if not plot then return end
-    
-    local crops = plot:FindFirstChild("Crops")
-    if not crops then return end
-    
-    for _, crop in ipairs(crops:GetChildren()) do
-        local stage = crop:FindFirstChild("Stage")
-        if stage and stage.Value >= 3 then
-            local prompt = crop:FindFirstChildOfClass("ProximityPrompt")
-            if prompt then
-                fireproximityprompt(prompt)
-                task.wait(0.1)
-            end
-        end
-    end
-end
+-- Создаём кнопки
+local autoHarvest
+local autoPlant
+local autoSell
+local autoBuy
 
--- 2. АВТО-ПОСАДКА
-local function AutoPlant()
-    local plot = getMyPlot()
-    if not plot then return end
-    
-    local dirtPlots = plot:FindFirstChild("DirtPlots")
-    if not dirtPlots then return end
-    
-    for _, dirt in ipairs(dirtPlots:GetChildren()) do
-        local hasCrop = dirt:FindFirstChild("HasCrop")
-        if hasCrop and hasCrop.Value == false then
-            local plantRemote = game:GetService("ReplicatedStorage"):FindFirstChild("PlantSeed", true)
-            if plantRemote then
-                plantRemote:FireServer(dirt, Settings.TargetSeed)
-                task.wait(0.2)
-            end
-        end
-    end
-end
+autoHarvest = CreateToggle(40, "Авто-сбор", function(v) Settings.AutoHarvest = v end)
+autoPlant = CreateToggle(80, "Авто-посадка", function(v) Settings.AutoPlant = v end)
+autoSell = CreateToggle(120, "Авто-продажа", function(v) Settings.AutoSell = v end)
+autoBuy = CreateToggle(160, "Авто-покупка", function(v) Settings.AutoBuy = v end)
 
--- 3. АВТО-ПРОДАЖА
-local function AutoSell()
-    local sellRemote = game:GetService("ReplicatedStorage"):FindFirstChild("SellCrops", true)
-    if sellRemote then
-        sellRemote:FireServer()
-    end
-end
+-- Кнопка закрытия
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 25, 0, 25)
+closeBtn.Position = UDim2.new(1, -30, 0, 2)
+closeBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+closeBtn.BorderSizePixel = 0
+closeBtn.Text = "✕"
+closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeBtn.TextScaled = true
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.Parent = mainFrame
 
--- 4. АВТО-ПОКУПКА СЕМЯН
-local function AutoBuySeeds()
-    local buyRemote = game:GetService("ReplicatedStorage"):FindFirstChild("BuySeeds", true)
-    if buyRemote then
-        buyRemote:FireServer(Settings.TargetSeed, 10)
-    end
-end
+closeBtn.MouseButton1Click:Connect(function()
+    mainFrame.Visible = false
+end)
 
--- ===================== СОЗДАНИЕ МЕНЮ =====================
-
-local Window = Rayfield:CreateWindow({
-    Name = "🌱 Grow a Garden 2",
-    LoadingTitle = "Загрузка...",
-    LoadingSubtitle = "Автор: Лёня",
-    ConfigurationSaving = {
-        Enabled = true,
-        FolderName = "GrowGarden2",
-        FileName = "Settings"
-    }
-})
-
--- ===================== ВКЛАДКА: ФЕРМА =====================
-
-local FarmTab = Window:CreateTab("🚜 Ферма")
-
--- Секция: Авто-сбор
-FarmTab:CreateSection("🌾 Сбор урожая")
-
-FarmTab:CreateToggle({
-    Name = "Авто-сбор",
-    CurrentValue = false,
-    Flag = "AutoHarvest",
-    Callback = function(Value)
-        Settings.AutoHarvest = Value
-        print("Авто-сбор: " .. tostring(Value))
-    end
-})
-
-FarmTab:CreateSlider({
-    Name = "Радиус сбора",
-    Range = {10, 100},
-    Increment = 5,
-    Suffix = "блоков",
-    CurrentValue = 50,
-    Flag = "HarvestRange",
-    Callback = function(Value)
-        Settings.HarvestRange = Value
-    end
-})
-
--- Секция: Авто-посадка
-FarmTab:CreateSection("🌱 Посадка")
-
-FarmTab:CreateToggle({
-    Name = "Авто-посадка",
-    CurrentValue = false,
-    Flag = "AutoPlant",
-    Callback = function(Value)
-        Settings.AutoPlant = Value
-        print("Авто-посадка: " .. tostring(Value))
-    end
-})
-
-FarmTab:CreateDropdown({
-    Name = "Семена для посадки",
-    Options = {"Bamboo", "Wheat", "Carrot", "Potato", "Tomato", "Strawberry"},
-    CurrentOption = "Bamboo",
-    Flag = "SeedType",
-    Callback = function(Option)
-        Settings.TargetSeed = Option
-        print("Выбраны семена: " .. Option)
-    end
-})
-
--- Секция: Авто-продажа
-FarmTab:CreateSection("💰 Продажа")
-
-FarmTab:CreateToggle({
-    Name = "Авто-продажа",
-    CurrentValue = false,
-    Flag = "AutoSell",
-    Callback = function(Value)
-        Settings.AutoSell = Value
-        print("Авто-продажа: " .. tostring(Value))
-    end
-})
-
--- Секция: Авто-покупка
-FarmTab:CreateSection("🛒 Покупка")
-
-FarmTab:CreateToggle({
-    Name = "Авто-покупка семян",
-    CurrentValue = false,
-    Flag = "AutoBuy",
-    Callback = function(Value)
-        Settings.AutoBuy = Value
-        print("Авто-покупка: " .. tostring(Value))
-    end
-})
-
--- ===================== ВКЛАДКА: ДОПОЛНИТЕЛЬНО =====================
-
-local ExtraTab = Window:CreateTab("⚙️ Дополнительно")
-
-ExtraTab:CreateButton({
-    Name = "📌 Телепорт к участку",
-    Callback = function()
-        local plot = getMyPlot()
-        if plot then
-            local pos = plot:FindFirstChild("Position")
-            if pos then
-                game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = pos.Value
-                print("✅ Телепорт к участку")
-            end
-        end
-    end
-})
-
-ExtraTab:CreateButton({
-    Name = "🏪 Телепорт в магазин",
-    Callback = function()
-        local shop = workspace:FindFirstChild("Shop")
-        if shop then
-            local pos = shop:FindFirstChild("Position")
-            if pos then
-                game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = pos.Value
-                print("✅ Телепорт в магазин")
-            end
-        end
-    end
-})
-
-ExtraTab:CreateSlider({
-    Name = "Скорость ходьбы",
-    Range = {16, 100},
-    Increment = 1,
-    Suffix = "",
-    CurrentValue = 16,
-    Flag = "WalkSpeed",
-    Callback = function(Value)
-        local char = game.Players.LocalPlayer.Character
-        if char and char:FindFirstChild("Humanoid") then
-            char.Humanoid.WalkSpeed = Value
-        end
-    end
-})
-
--- ===================== ЦИКЛ АВТОМАТИЗАЦИИ =====================
-
-task.spawn(function()
-    while task.wait(0.5) do
-        if Settings.AutoHarvest then
-            AutoHarvest()
-        end
-        
-        if Settings.AutoPlant then
-            AutoPlant()
-        end
-        
-        if Settings.AutoSell then
-            AutoSell()
-        end
-        
-        if Settings.AutoBuy then
-            AutoBuySeeds()
-        end
+-- Открытие по K
+game:GetService("UserInputService").InputBegan:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.K then
+        mainFrame.Visible = not mainFrame.Visible
     end
 end)
 
--- ===================== ЗАПУСК =====================
-
-print("✅ Меню загружено! Нажми 'Insert' для открытия")
-print("🔥 Grow a Garden 2 - Rayfield Menu v1.0")
+print("✅ Меню загружено! Нажми K для открытия")
