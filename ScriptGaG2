@@ -1,340 +1,256 @@
 -- ============================================
--- SPEED + FLY MENU - Полный контроль
--- Регулировка скорости + Включение полета
+-- GROW A GARDEN 2 - RAYFIELD MENU
+-- Авто-сбор | Авто-посадка | Авто-продажа | Авто-покупка
+-- Версия: 1.0 | Автор: Лёня
 -- ============================================
 
-local player = game.Players.LocalPlayer
-local char = player.Character or player.CharacterAdded:Wait()
-local humanoid = char:WaitForChild("Humanoid")
-local rootPart = char:WaitForChild("HumanoidRootPart")
+-- Подключаем Rayfield
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
--- Переменные для полета
-local flyEnabled = false
-local flySpeed = 50
-local bodyVelocity = nil
-local bodyGyro = nil
-
--- Создаем GUI
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "SpeedFlyMenu"
-screenGui.Parent = player:WaitForChild("PlayerGui")
-
--- Главный фрейм (окно)
-local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 280, 0, 280)
-mainFrame.Position = UDim2.new(0.5, -140, 0.5, -140)
-mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-mainFrame.BackgroundTransparency = 0.1
-mainFrame.BorderSizePixel = 0
-mainFrame.Active = true
-mainFrame.Draggable = true
-mainFrame.Parent = screenGui
-
--- Заголовок
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 30)
-title.Position = UDim2.new(0, 0, 0, 0)
-title.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
-title.BackgroundTransparency = 0.1
-title.BorderSizePixel = 0
-title.Text = "⚡ SPEED + FLY ⚡"
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.TextScaled = true
-title.Font = Enum.Font.GothamBold
-title.Parent = mainFrame
-
--- Текущая скорость
-local speedDisplay = Instance.new("TextLabel")
-speedDisplay.Size = UDim2.new(1, 0, 0, 30)
-speedDisplay.Position = UDim2.new(0, 0, 0, 35)
-speedDisplay.BackgroundTransparency = 1
-speedDisplay.Text = "Скорость: 16"
-speedDisplay.TextColor3 = Color3.fromRGB(100, 200, 255)
-speedDisplay.TextScaled = true
-speedDisplay.Font = Enum.Font.GothamBold
-speedDisplay.Parent = mainFrame
-
--- Поле ввода скорости
-local speedInput = Instance.new("TextBox")
-speedInput.Size = UDim2.new(0.6, 0, 0, 30)
-speedInput.Position = UDim2.new(0.2, 0, 0, 70)
-speedInput.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
-speedInput.BorderSizePixel = 0
-speedInput.Text = "16"
-speedInput.TextColor3 = Color3.fromRGB(255, 255, 255)
-speedInput.TextScaled = true
-speedInput.Font = Enum.Font.GothamBold
-speedInput.PlaceholderText = "Скорость"
-speedInput.Parent = mainFrame
-
--- Кнопка "Применить скорость"
-local speedApply = Instance.new("TextButton")
-speedApply.Size = UDim2.new(0.3, 0, 0, 30)
-speedApply.Position = UDim2.new(0.35, 0, 0, 105)
-speedApply.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
-speedApply.BorderSizePixel = 0
-speedApply.Text = "Скорость"
-speedApply.TextColor3 = Color3.fromRGB(255, 255, 255)
-speedApply.TextScaled = true
-speedApply.Font = Enum.Font.GothamBold
-speedApply.Parent = mainFrame
-
--- Кнопки быстрой скорости
-local speedPresets = {
-    {Text = "1x", Value = 16},
-    {Text = "2x", Value = 32},
-    {Text = "3x", Value = 48},
-    {Text = "5x", Value = 80}
+-- ===================== НАСТРОЙКИ =====================
+local Settings = {
+    AutoHarvest = false,
+    AutoPlant = false,
+    AutoSell = false,
+    AutoBuy = false,
+    HarvestRange = 50,
+    TargetSeed = "Bamboo"
 }
 
-local speedY = 140
-for i, preset in ipairs(speedPresets) do
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0.22, 0, 0, 25)
-    btn.Position = UDim2.new(0.01 + (i-1) * 0.24, 0, 0, speedY)
-    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-    btn.BorderSizePixel = 0
-    btn.Text = preset.Text
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.TextScaled = true
-    btn.Font = Enum.Font.GothamBold
-    btn.Parent = mainFrame
+-- ===================== ОСНОВНЫЕ ФУНКЦИИ =====================
+
+-- Получить свой участок
+local function getMyPlot()
+    local plots = workspace:FindFirstChild("Plots")
+    if not plots then return nil end
     
-    btn.MouseButton1Click:Connect(function()
-        speedInput.Text = tostring(preset.Value)
-        SetSpeed(preset.Value)
-    end)
+    for _, plot in ipairs(plots:GetChildren()) do
+        local owner = plot:FindFirstChild("Owner")
+        if owner and owner.Value == game.Players.LocalPlayer.Name then
+            return plot
+        end
+    end
+    return nil
 end
 
--- Разделитель
-local divider = Instance.new("Frame")
-divider.Size = UDim2.new(0.9, 0, 0, 2)
-divider.Position = UDim2.new(0.05, 0, 0, 175)
-divider.BackgroundColor3 = Color3.fromRGB(80, 80, 100)
-divider.BorderSizePixel = 0
-divider.Parent = mainFrame
-
--- === FLY СЕКЦИЯ ===
-
--- Заголовок FLY
-local flyTitle = Instance.new("TextLabel")
-flyTitle.Size = UDim2.new(1, 0, 0, 25)
-flyTitle.Position = UDim2.new(0, 0, 0, 185)
-flyTitle.BackgroundTransparency = 1
-flyTitle.Text = "🕊️ ПОЛЕТ"
-flyTitle.TextColor3 = Color3.fromRGB(255, 200, 100)
-flyTitle.TextScaled = true
-flyTitle.Font = Enum.Font.GothamBold
-flyTitle.Parent = mainFrame
-
--- Кнопка включения/выключения полета
-local flyButton = Instance.new("TextButton")
-flyButton.Size = UDim2.new(0.4, 0, 0, 35)
-flyButton.Position = UDim2.new(0.3, 0, 0, 215)
-flyButton.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-flyButton.BorderSizePixel = 0
-flyButton.Text = "❌ ВЫКЛ"
-flyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-flyButton.TextScaled = true
-flyButton.Font = Enum.Font.GothamBold
-flyButton.Parent = mainFrame
-
--- Поле для скорости полета
-local flySpeedInput = Instance.new("TextBox")
-flySpeedInput.Size = UDim2.new(0.4, 0, 0, 30)
-flySpeedInput.Position = UDim2.new(0.3, 0, 0, 180)
-flySpeedInput.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
-flySpeedInput.BorderSizePixel = 0
-flySpeedInput.Text = "50"
-flySpeedInput.TextColor3 = Color3.fromRGB(255, 255, 255)
-flySpeedInput.TextScaled = true
-flySpeedInput.Font = Enum.Font.GothamBold
-flySpeedInput.PlaceholderText = "Скорость полета"
-flySpeedInput.Parent = mainFrame
-
--- Кнопка закрытия
-local closeButton = Instance.new("TextButton")
-closeButton.Size = UDim2.new(0, 25, 0, 25)
-closeButton.Position = UDim2.new(1, -30, 0, 2)
-closeButton.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-closeButton.BorderSizePixel = 0
-closeButton.Text = "✕"
-closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-closeButton.TextScaled = true
-closeButton.Font = Enum.Font.GothamBold
-closeButton.Parent = mainFrame
-
-closeButton.MouseButton1Click:Connect(function()
-    mainFrame.Visible = false
-    if flyEnabled then
-        ToggleFly()
-    end
-end)
-
--- ===================== ФУНКЦИИ =====================
-
--- Установка скорости ходьбы
-local function SetSpeed(value)
-    value = tonumber(value)
-    if not value or value < 1 then
-        speedDisplay.Text = "❌ Ошибка!"
-        return
-    end
-    if value > 200 then value = 200 end
-    humanoid.WalkSpeed = value
-    speedDisplay.Text = "Скорость: " .. value
-    print("✅ Скорость установлена: " .. value)
-end
-
--- Функция полета
-local function ToggleFly()
-    flyEnabled = not flyEnabled
+-- 1. АВТО-СБОР
+local function AutoHarvest()
+    local plot = getMyPlot()
+    if not plot then return end
     
-    if flyEnabled then
-        -- Включаем полет
-        flySpeed = tonumber(flySpeedInput.Text) or 50
-        if flySpeed < 1 then flySpeed = 1 end
-        if flySpeed > 200 then flySpeed = 200 end
-        
-        -- Создаем BodyVelocity для движения
-        bodyVelocity = Instance.new("BodyVelocity")
-        bodyVelocity.MaxForce = Vector3.new(1, 1, 1) * 100000
-        bodyVelocity.Velocity = Vector3.new(0, 0, 0)
-        bodyVelocity.Parent = rootPart
-        
-        -- Создаем BodyGyro для стабилизации
-        bodyGyro = Instance.new("BodyGyro")
-        bodyGyro.MaxTorque = Vector3.new(1, 1, 1) * 100000
-        bodyGyro.CFrame = rootPart.CFrame
-        bodyGyro.Parent = rootPart
-        
-        flyButton.Text = "✅ ВКЛ"
-        flyButton.BackgroundColor3 = Color3.fromRGB(0, 200, 50)
-        humanoid.PlatformStand = true
-        
-        print("🕊️ Полет включен! Скорость: " .. flySpeed)
-        
-        -- Запускаем обновление полета
-        game:GetService("RunService").Heartbeat:Connect(function()
-            if not flyEnabled then return end
-            if not rootPart or not rootPart.Parent then return end
-            
-            local moveDirection = Vector3.new()
-            local camera = workspace.CurrentCamera
-            
-            -- Управление WASD
-            if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.W) then
-                moveDirection = moveDirection + camera.CFrame.LookVector * Vector3.new(1, 0, 1)
+    local crops = plot:FindFirstChild("Crops")
+    if not crops then return end
+    
+    for _, crop in ipairs(crops:GetChildren()) do
+        local stage = crop:FindFirstChild("Stage")
+        if stage and stage.Value >= 3 then
+            local prompt = crop:FindFirstChildOfClass("ProximityPrompt")
+            if prompt then
+                fireproximityprompt(prompt)
+                task.wait(0.1)
             end
-            if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.S) then
-                moveDirection = moveDirection - camera.CFrame.LookVector * Vector3.new(1, 0, 1)
-            end
-            if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.A) then
-                moveDirection = moveDirection - camera.CFrame.RightVector * Vector3.new(1, 0, 1)
-            end
-            if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.D) then
-                moveDirection = moveDirection + camera.CFrame.RightVector * Vector3.new(1, 0, 1)
-            end
-            
-            -- Вверх/вниз (Space и Ctrl)
-            if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.Space) then
-                moveDirection = moveDirection + Vector3.new(0, 1, 0)
-            end
-            if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.LeftControl) then
-                moveDirection = moveDirection - Vector3.new(0, 1, 0)
-            end
-            
-            -- Нормализуем и применяем скорость
-            if moveDirection.Magnitude > 0 then
-                moveDirection = moveDirection.Unit * flySpeed
-            end
-            
-            if bodyVelocity then
-                bodyVelocity.Velocity = moveDirection
-            end
-            if bodyGyro then
-                bodyGyro.CFrame = camera.CFrame
-            end
-        end)
-        
-    else
-        -- Выключаем полет
-        if bodyVelocity then
-            bodyVelocity:Destroy()
-            bodyVelocity = nil
         end
-        if bodyGyro then
-            bodyGyro:Destroy()
-            bodyGyro = nil
-        end
-        humanoid.PlatformStand = false
-        
-        flyButton.Text = "❌ ВЫКЛ"
-        flyButton.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-        print("🕊️ Полет выключен")
     end
 end
 
--- ===================== ОБРАБОТЧИКИ =====================
-
--- Кнопка скорости
-speedApply.MouseButton1Click:Connect(function()
-    local value = tonumber(speedInput.Text)
-    if value then SetSpeed(value) else speedDisplay.Text = "❌ Введите число!" end
-end)
-
--- Enter в поле скорости
-speedInput.FocusLost:Connect(function(enterPressed)
-    if enterPressed then
-        local value = tonumber(speedInput.Text)
-        if value then SetSpeed(value) else speedDisplay.Text = "❌ Введите число!" end
+-- 2. АВТО-ПОСАДКА
+local function AutoPlant()
+    local plot = getMyPlot()
+    if not plot then return end
+    
+    local dirtPlots = plot:FindFirstChild("DirtPlots")
+    if not dirtPlots then return end
+    
+    for _, dirt in ipairs(dirtPlots:GetChildren()) do
+        local hasCrop = dirt:FindFirstChild("HasCrop")
+        if hasCrop and hasCrop.Value == false then
+            local plantRemote = game:GetService("ReplicatedStorage"):FindFirstChild("PlantSeed", true)
+            if plantRemote then
+                plantRemote:FireServer(dirt, Settings.TargetSeed)
+                task.wait(0.2)
+            end
+        end
     end
-end)
+end
 
--- Кнопка полета
-flyButton.MouseButton1Click:Connect(function()
-    ToggleFly()
-end)
+-- 3. АВТО-ПРОДАЖА
+local function AutoSell()
+    local sellRemote = game:GetService("ReplicatedStorage"):FindFirstChild("SellCrops", true)
+    if sellRemote then
+        sellRemote:FireServer()
+    end
+end
 
--- Enter в поле скорости полета
-flySpeedInput.FocusLost:Connect(function(enterPressed)
-    if enterPressed then
-        local value = tonumber(flySpeedInput.Text)
-        if value and value > 0 then
-            flySpeed = value
-            if flySpeed > 200 then flySpeed = 200 end
-            flySpeedInput.Text = tostring(flySpeed)
-            print("✅ Скорость полета: " .. flySpeed)
-        else
-            flySpeedInput.Text = tostring(flySpeed)
+-- 4. АВТО-ПОКУПКА СЕМЯН
+local function AutoBuySeeds()
+    local buyRemote = game:GetService("ReplicatedStorage"):FindFirstChild("BuySeeds", true)
+    if buyRemote then
+        buyRemote:FireServer(Settings.TargetSeed, 10)
+    end
+end
+
+-- ===================== СОЗДАНИЕ МЕНЮ =====================
+
+local Window = Rayfield:CreateWindow({
+    Name = "🌱 Grow a Garden 2",
+    LoadingTitle = "Загрузка...",
+    LoadingSubtitle = "Автор: Лёня",
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = "GrowGarden2",
+        FileName = "Settings"
+    }
+})
+
+-- ===================== ВКЛАДКА: ФЕРМА =====================
+
+local FarmTab = Window:CreateTab("🚜 Ферма")
+
+-- Секция: Авто-сбор
+FarmTab:CreateSection("🌾 Сбор урожая")
+
+FarmTab:CreateToggle({
+    Name = "Авто-сбор",
+    CurrentValue = false,
+    Flag = "AutoHarvest",
+    Callback = function(Value)
+        Settings.AutoHarvest = Value
+        print("Авто-сбор: " .. tostring(Value))
+    end
+})
+
+FarmTab:CreateSlider({
+    Name = "Радиус сбора",
+    Range = {10, 100},
+    Increment = 5,
+    Suffix = "блоков",
+    CurrentValue = 50,
+    Flag = "HarvestRange",
+    Callback = function(Value)
+        Settings.HarvestRange = Value
+    end
+})
+
+-- Секция: Авто-посадка
+FarmTab:CreateSection("🌱 Посадка")
+
+FarmTab:CreateToggle({
+    Name = "Авто-посадка",
+    CurrentValue = false,
+    Flag = "AutoPlant",
+    Callback = function(Value)
+        Settings.AutoPlant = Value
+        print("Авто-посадка: " .. tostring(Value))
+    end
+})
+
+FarmTab:CreateDropdown({
+    Name = "Семена для посадки",
+    Options = {"Bamboo", "Wheat", "Carrot", "Potato", "Tomato", "Strawberry"},
+    CurrentOption = "Bamboo",
+    Flag = "SeedType",
+    Callback = function(Option)
+        Settings.TargetSeed = Option
+        print("Выбраны семена: " .. Option)
+    end
+})
+
+-- Секция: Авто-продажа
+FarmTab:CreateSection("💰 Продажа")
+
+FarmTab:CreateToggle({
+    Name = "Авто-продажа",
+    CurrentValue = false,
+    Flag = "AutoSell",
+    Callback = function(Value)
+        Settings.AutoSell = Value
+        print("Авто-продажа: " .. tostring(Value))
+    end
+})
+
+-- Секция: Авто-покупка
+FarmTab:CreateSection("🛒 Покупка")
+
+FarmTab:CreateToggle({
+    Name = "Авто-покупка семян",
+    CurrentValue = false,
+    Flag = "AutoBuy",
+    Callback = function(Value)
+        Settings.AutoBuy = Value
+        print("Авто-покупка: " .. tostring(Value))
+    end
+})
+
+-- ===================== ВКЛАДКА: ДОПОЛНИТЕЛЬНО =====================
+
+local ExtraTab = Window:CreateTab("⚙️ Дополнительно")
+
+ExtraTab:CreateButton({
+    Name = "📌 Телепорт к участку",
+    Callback = function()
+        local plot = getMyPlot()
+        if plot then
+            local pos = plot:FindFirstChild("Position")
+            if pos then
+                game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = pos.Value
+                print("✅ Телепорт к участку")
+            end
+        end
+    end
+})
+
+ExtraTab:CreateButton({
+    Name = "🏪 Телепорт в магазин",
+    Callback = function()
+        local shop = workspace:FindFirstChild("Shop")
+        if shop then
+            local pos = shop:FindFirstChild("Position")
+            if pos then
+                game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = pos.Value
+                print("✅ Телепорт в магазин")
+            end
+        end
+    end
+})
+
+ExtraTab:CreateSlider({
+    Name = "Скорость ходьбы",
+    Range = {16, 100},
+    Increment = 1,
+    Suffix = "",
+    CurrentValue = 16,
+    Flag = "WalkSpeed",
+    Callback = function(Value)
+        local char = game.Players.LocalPlayer.Character
+        if char and char:FindFirstChild("Humanoid") then
+            char.Humanoid.WalkSpeed = Value
+        end
+    end
+})
+
+-- ===================== ЦИКЛ АВТОМАТИЗАЦИИ =====================
+
+task.spawn(function()
+    while task.wait(0.5) do
+        if Settings.AutoHarvest then
+            AutoHarvest()
+        end
+        
+        if Settings.AutoPlant then
+            AutoPlant()
+        end
+        
+        if Settings.AutoSell then
+            AutoSell()
+        end
+        
+        if Settings.AutoBuy then
+            AutoBuySeeds()
         end
     end
 end)
 
--- Обновление при смене персонажа
-player.CharacterAdded:Connect(function(newChar)
-    char = newChar
-    humanoid = char:WaitForChild("Humanoid")
-    rootPart = char:WaitForChild("HumanoidRootPart")
-    
-    -- Восстанавливаем скорость
-    local currentSpeed = tonumber(speedInput.Text)
-    if currentSpeed then SetSpeed(currentSpeed) end
-    
-    -- Если был полет, выключаем
-    if flyEnabled then
-        ToggleFly()
-    end
-end)
+-- ===================== ЗАПУСК =====================
 
--- Открытие по нажатию K
-game:GetService("UserInputService").InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    if input.KeyCode == Enum.KeyCode.K then
-        mainFrame.Visible = not mainFrame.Visible
-    end
-end)
-
-print("✅ Speed + Fly Menu загружен!")
-print("💡 Нажми K для открытия меню")
-print("🕊️ В полете: WASD - движение, Пробел - вверх, Ctrl - вниз")
+print("✅ Меню загружено! Нажми 'Insert' для открытия")
+print("🔥 Grow a Garden 2 - Rayfield Menu v1.0")
