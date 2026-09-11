@@ -1,6 +1,7 @@
 -- =====================================================================
--- KSAS ULTIMATE v1.6
--- ESP на мёртвых + респавн | Котенок-Бот + Аимбот | NOCLIP
+-- KSAS ULTIMATE v1.8 (ФИНАЛ)
+-- 🎨 Смена цвета меню | 🛡️ Неприступность | ESP на мёртвых
+-- Котенок | Котенок-Бот + Аим | Сундуки | Speed | Fly | Noclip
 -- =====================================================================
 
 local player = game.Players.LocalPlayer
@@ -14,6 +15,9 @@ if old then old:Destroy() end
 
 local minimized = false
 local activeTab = nil
+local MENU_COLOR = Color3.fromRGB(100, 150, 255)
+
+local menuColorObjects = {} -- Для смены цвета всех элементов
 
 -- ==================== МЕНЮ ====================
 local screenGui = Instance.new("ScreenGui")
@@ -22,8 +26,8 @@ screenGui.ResetOnSpawn = false
 screenGui.Parent = playerGui
 
 local main = Instance.new("Frame")
-main.Size = UDim2.new(0, 520, 0, 440)
-main.Position = UDim2.new(0.3, 0, 0.25, 0)
+main.Size = UDim2.new(0, 580, 0, 480)
+main.Position = UDim2.new(0.28, 0, 0.2, 0)
 main.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
 main.BackgroundTransparency = 0.1
 main.BorderSizePixel = 0
@@ -34,10 +38,11 @@ mainCorner.CornerRadius = UDim.new(0, 14)
 mainCorner.Parent = main
 
 local mainStroke = Instance.new("UIStroke")
-mainStroke.Color = Color3.fromRGB(100, 150, 255)
+mainStroke.Color = MENU_COLOR
 mainStroke.Thickness = 2
 mainStroke.Transparency = 0.3
 mainStroke.Parent = main
+table.insert(menuColorObjects, {obj = mainStroke, prop = "Color"})
 
 local topbar = Instance.new("Frame")
 topbar.Size = UDim2.new(1, 0, 0, 40)
@@ -54,7 +59,7 @@ local title = Instance.new("TextLabel")
 title.Size = UDim2.new(0.7, 0, 1, 0)
 title.Position = UDim2.new(0, 15, 0, 0)
 title.BackgroundTransparency = 1
-title.Text = "⚡ KSAS ULTIMATE v1.6"
+title.Text = "⚡ KSAS ULTIMATE v1.8"
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.TextSize = 16
 title.Font = Enum.Font.GothamBold
@@ -108,17 +113,18 @@ local tabsFrame, contentFrame
 local function toggleMinimize()
     minimized = not minimized
     if minimized then
-        main.Size = UDim2.new(0, 520, 0, 40)
+        main.Size = UDim2.new(0, 580, 0, 40)
         if tabsFrame then tabsFrame.Visible = false end
         if contentFrame then contentFrame.Visible = false end
     else
-        main.Size = UDim2.new(0, 520, 0, 440)
+        main.Size = UDim2.new(0, 580, 0, 480)
         if tabsFrame then tabsFrame.Visible = true end
         if contentFrame then contentFrame.Visible = true end
     end
 end
 
-makeTopButton("−", -75, Color3.fromRGB(100, 150, 255), toggleMinimize)
+local minBtn = makeTopButton("−", -75, MENU_COLOR, toggleMinimize)
+table.insert(menuColorObjects, {obj = minBtn, prop = "BackgroundColor3"})
 makeTopButton("✕", -40, Color3.fromRGB(200, 50, 50), function() screenGui:Destroy() end)
 
 tabsFrame = Instance.new("Frame")
@@ -148,7 +154,7 @@ local tabPages = {}
 
 local function createTab(name, width)
     local tab = Instance.new("TextButton")
-    tab.Size = UDim2.new(0, width or 80, 0, 30)
+    tab.Size = UDim2.new(0, width or 70, 0, 30)
     tab.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
     tab.BackgroundTransparency = 0.3
     tab.BorderSizePixel = 0
@@ -160,6 +166,7 @@ local function createTab(name, width)
     local c = Instance.new("UICorner")
     c.CornerRadius = UDim.new(0, 8)
     c.Parent = tab
+    table.insert(menuColorObjects, {obj = tab, prop = "BackgroundColor3", isTab = true})
 
     local page = Instance.new("ScrollingFrame")
     page.Size = UDim2.new(1, -10, 1, -10)
@@ -167,10 +174,11 @@ local function createTab(name, width)
     page.BackgroundTransparency = 1
     page.BorderSizePixel = 0
     page.ScrollBarThickness = 5
-    page.ScrollBarImageColor3 = Color3.fromRGB(100, 150, 255)
+    page.ScrollBarImageColor3 = MENU_COLOR
     page.CanvasSize = UDim2.new(0, 0, 0, 0)
     page.Visible = false
     page.Parent = contentFrame
+    table.insert(menuColorObjects, {obj = page, prop = "ScrollBarImageColor3"})
 
     local pageLayout = Instance.new("UIListLayout")
     pageLayout.Padding = UDim.new(0, 5)
@@ -190,7 +198,7 @@ local function createTab(name, width)
                 t.TextColor3 = Color3.fromRGB(200, 200, 255)
             end
         end
-        tab.BackgroundColor3 = Color3.fromRGB(50, 100, 200)
+        tab.BackgroundColor3 = MENU_COLOR
         tab.TextColor3 = Color3.fromRGB(255, 255, 255)
         activeTab = page
     end)
@@ -224,18 +232,19 @@ local function createSection(parent, text)
     lbl.Size = UDim2.new(1, -10, 0, 25)
     lbl.BackgroundTransparency = 1
     lbl.Text = "── " .. text .. " ──"
-    lbl.TextColor3 = Color3.fromRGB(100, 150, 255)
+    lbl.TextColor3 = MENU_COLOR
     lbl.TextSize = 12
     lbl.Font = Enum.Font.GothamBold
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.Parent = parent
+    table.insert(menuColorObjects, {obj = lbl, prop = "TextColor3"})
     return lbl
 end
 
 local function createToggle(parent, text, default, callback)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1, -10, 0, 32)
-    btn.BackgroundColor3 = default and Color3.fromRGB(50, 100, 200) or Color3.fromRGB(40, 40, 60)
+    btn.BackgroundColor3 = default and MENU_COLOR or Color3.fromRGB(40, 40, 60)
     btn.BackgroundTransparency = 0.3
     btn.BorderSizePixel = 0
     btn.Text = (default and "● " or "○ ") .. text
@@ -250,7 +259,7 @@ local function createToggle(parent, text, default, callback)
     btn.MouseButton1Click:Connect(function()
         state = not state
         btn.Text = (state and "● " or "○ ") .. text
-        btn.BackgroundColor3 = state and Color3.fromRGB(50, 100, 200) or Color3.fromRGB(40, 40, 60)
+        btn.BackgroundColor3 = state and MENU_COLOR or Color3.fromRGB(40, 40, 60)
         callback(state)
     end)
     return btn
@@ -294,7 +303,7 @@ createButton(MarksTab, "📤 Телепорт в слот 2 (клавиша 5)",
     root.CFrame = CFrame.new(savedPositions[2])
 end)
 
--- ==================== КОТЕНОК (ИГРОКИ) ====================
+-- ==================== КОТЕНОК ====================
 local StalkTab = createTab("🐱 Котенок")
 local stalking = false
 local stalkTarget = nil
@@ -315,7 +324,7 @@ distLayout.Parent = distRow
 for i = 1, 6 do
     local dbtn = Instance.new("TextButton")
     dbtn.Size = UDim2.new(0, 40, 0, 30)
-    dbtn.BackgroundColor3 = (i == 3) and Color3.fromRGB(50, 100, 200) or Color3.fromRGB(40, 40, 60)
+    dbtn.BackgroundColor3 = (i == 3) and MENU_COLOR or Color3.fromRGB(40, 40, 60)
     dbtn.BackgroundTransparency = 0.3
     dbtn.BorderSizePixel = 0
     dbtn.Text = tostring(i)
@@ -333,7 +342,7 @@ for i = 1, 6 do
                 b.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
             end
         end
-        dbtn.BackgroundColor3 = Color3.fromRGB(50, 100, 200)
+        dbtn.BackgroundColor3 = MENU_COLOR
     end)
 end
 
@@ -345,10 +354,11 @@ playerScroll.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
 playerScroll.BackgroundTransparency = 0.4
 playerScroll.BorderSizePixel = 0
 playerScroll.ScrollBarThickness = 6
-playerScroll.ScrollBarImageColor3 = Color3.fromRGB(100, 150, 255)
+playerScroll.ScrollBarImageColor3 = MENU_COLOR
 playerScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
 playerScroll.ScrollingDirection = Enum.ScrollingDirection.Y
 playerScroll.Parent = StalkTab
+table.insert(menuColorObjects, {obj = playerScroll, prop = "ScrollBarImageColor3"})
 
 local psCorner = Instance.new("UICorner")
 psCorner.CornerRadius = UDim.new(0, 8)
@@ -408,7 +418,7 @@ local function updatePlayerButtons()
                         end
                     end
                     btn.Text = "  🎯 " .. otherPlayer.Name
-                    btn.BackgroundColor3 = Color3.fromRGB(50, 100, 200)
+                    btn.BackgroundColor3 = MENU_COLOR
                 end
             end)
         end
@@ -425,8 +435,8 @@ createButton(StalkTab, "🔄 Обновить список", function()
     updatePlayerButtons()
 end)
 
--- ==================== КОТЕНОК НА БОТОВ + АИМБОТ ====================
-local BotTab = createTab("🤖 Котенок-Бот")
+-- ==================== КОТЕНОК-БОТ ====================
+local BotTab = createTab("🤖 Бот")
 local botStalking = false
 local botTarget = nil
 local botTargetName = nil
@@ -448,7 +458,7 @@ botDistLayout.Parent = botDistRow
 for i = 1, 6 do
     local dbtn = Instance.new("TextButton")
     dbtn.Size = UDim2.new(0, 40, 0, 30)
-    dbtn.BackgroundColor3 = (i == 3) and Color3.fromRGB(50, 100, 200) or Color3.fromRGB(40, 40, 60)
+    dbtn.BackgroundColor3 = (i == 3) and MENU_COLOR or Color3.fromRGB(40, 40, 60)
     dbtn.BackgroundTransparency = 0.3
     dbtn.BorderSizePixel = 0
     dbtn.Text = tostring(i)
@@ -466,12 +476,11 @@ for i = 1, 6 do
                 b.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
             end
         end
-        dbtn.BackgroundColor3 = Color3.fromRGB(50, 100, 200)
+        dbtn.BackgroundColor3 = MENU_COLOR
     end)
 end
 
 createSection(BotTab, "Настройки")
-
 createToggle(BotTab, "🎯 Аимбот на ноги (авто)", true, function(state)
     botAimEnabled = state
 end)
@@ -591,7 +600,7 @@ local botStartBtn = createButton(BotTab, "▶️ СТАРТ (котенок + а
         botStatus.Text = "🐱 Котенок + 🎯 Аимбот ВКЛ"
         botStatus.TextColor3 = Color3.fromRGB(0, 255, 100)
 
-        local target, root = findNearestBotWithName(botTargetName)
+        local target = findNearestBotWithName(botTargetName)
         if target then
             botTarget = target
             botInfo.Text = "Цель: " .. target.Name .. " | Активна"
@@ -637,7 +646,7 @@ runService.RenderStepped:Connect(function()
         end
 
         if not targetValid then
-            local newTarget, newRoot = findNearestBotWithName(botTargetName)
+            local newTarget = findNearestBotWithName(botTargetName)
             if newTarget then
                 botTarget = newTarget
                 botInfo.Text = "Цель: " .. newTarget.Name .. " | Новая"
@@ -844,7 +853,7 @@ task.spawn(function()
     end
 end)
 
--- ==================== ДВИЖЕНИЕ (включая NOCLIP) ====================
+-- ==================== ДВИЖЕНИЕ ====================
 local MoveTab = createTab("⚡ Движение")
 
 createSection(MoveTab, "Скорость")
@@ -874,7 +883,7 @@ createToggle(MoveTab, "Speed вкл/выкл", false, function(state)
 end)
 
 createSection(MoveTab, "Прыжок")
-createToggle(MoveTab, "High Jump (100 power)", false, function(state)
+createToggle(MoveTab, "High Jump (100)", false, function(state)
     local char = player.Character
     if char then
         local hum = char:FindFirstChild("Humanoid")
@@ -955,17 +964,15 @@ createToggle(MoveTab, "Fly вкл/выкл", false, function(state)
     end
 end)
 
--- ==================== NOCLIP ====================
-createSection(MoveTab, "🚪 Noclip (через стены)")
+createSection(MoveTab, "🚪 Noclip")
 
 local noclipEnabled = false
 local noclipConn = nil
 
 createToggle(MoveTab, "Noclip вкл/выкл", false, function(state)
     noclipEnabled = state
-    
+
     if state then
-        -- Включаем noclip
         noclipConn = runService.Stepped:Connect(function()
             if not noclipEnabled then return end
             local char = player.Character
@@ -978,7 +985,6 @@ createToggle(MoveTab, "Noclip вкл/выкл", false, function(state)
             end
         end)
     else
-        -- Выключаем noclip
         if noclipConn then noclipConn:Disconnect() noclipConn = nil end
         local char = player.Character
         if char then
@@ -991,7 +997,6 @@ createToggle(MoveTab, "Noclip вкл/выкл", false, function(state)
     end
 end)
 
--- Noclip при респавне (если был включен)
 player.CharacterAdded:Connect(function()
     if noclipEnabled then
         task.wait(0.5)
@@ -1000,6 +1005,158 @@ player.CharacterAdded:Connect(function()
             for _, part in ipairs(char:GetDescendants()) do
                 if part:IsA("BasePart") then
                     part.CanCollide = false
+                end
+            end
+        end
+    end
+end)
+
+-- ==================== 🛡️ НЕПРИСТУПНОСТЬ ====================
+local ShieldTab = createTab("🛡️ Щит")
+
+local shieldEnabled = false
+local SHIELD_RADIUS = 10
+local shieldTargets = "all" -- "all", "players", "bots"
+
+createSection(ShieldTab, "Радиус")
+
+local shieldRadRow = Instance.new("Frame")
+shieldRadRow.Size = UDim2.new(1, -10, 0, 32)
+shieldRadRow.BackgroundTransparency = 1
+shieldRadRow.Parent = ShieldTab
+
+local shieldRadLayout = Instance.new("UIListLayout")
+shieldRadLayout.FillDirection = Enum.FillDirection.Horizontal
+shieldRadLayout.Padding = UDim.new(0, 4)
+shieldRadLayout.Parent = shieldRadRow
+
+for _, rad in ipairs({5, 10, 15, 20, 30}) do
+    local rbtn = Instance.new("TextButton")
+    rbtn.Size = UDim2.new(0, 48, 0, 30)
+    rbtn.BackgroundColor3 = (rad == 10) and MENU_COLOR or Color3.fromRGB(40, 40, 60)
+    rbtn.BackgroundTransparency = 0.3
+    rbtn.BorderSizePixel = 0
+    rbtn.Text = tostring(rad)
+    rbtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    rbtn.TextSize = 12
+    rbtn.Font = Enum.Font.GothamBold
+    rbtn.Parent = shieldRadRow
+    local rc = Instance.new("UICorner")
+    rc.CornerRadius = UDim.new(0, 6)
+    rc.Parent = rbtn
+    rbtn.MouseButton1Click:Connect(function()
+        SHIELD_RADIUS = rad
+        for _, b in ipairs(shieldRadRow:GetChildren()) do
+            if b:IsA("TextButton") then
+                b.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+            end
+        end
+        rbtn.BackgroundColor3 = MENU_COLOR
+    end)
+end
+
+createSection(ShieldTab, "Цели")
+
+local shieldTargetRow = Instance.new("Frame")
+shieldTargetRow.Size = UDim2.new(1, -10, 0, 32)
+shieldTargetRow.BackgroundTransparency = 1
+shieldTargetRow.Parent = ShieldTab
+
+local shieldTargetLayout = Instance.new("UIListLayout")
+shieldTargetLayout.FillDirection = Enum.FillDirection.Horizontal
+shieldTargetLayout.Padding = UDim.new(0, 4)
+shieldTargetLayout.Parent = shieldTargetRow
+
+local targetButtons = {}
+
+local function createTargetBtn(text, value)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 90, 0, 30)
+    btn.BackgroundColor3 = (value == "all") and MENU_COLOR or Color3.fromRGB(40, 40, 60)
+    btn.BackgroundTransparency = 0.3
+    btn.BorderSizePixel = 0
+    btn.Text = text
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.TextSize = 11
+    btn.Font = Enum.Font.GothamBold
+    btn.Parent = shieldTargetRow
+    local tc = Instance.new("UICorner")
+    tc.CornerRadius = UDim.new(0, 6)
+    tc.Parent = btn
+    btn.MouseButton1Click:Connect(function()
+        shieldTargets = value
+        for _, b in ipairs(shieldTargetRow:GetChildren()) do
+            if b:IsA("TextButton") then
+                b.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+            end
+        end
+        btn.BackgroundColor3 = MENU_COLOR
+    end)
+    return btn
+end
+
+createTargetBtn("Все", "all")
+createTargetBtn("Игроки", "players")
+createTargetBtn("Боты", "bots")
+
+createSection(ShieldTab, "Управление")
+
+createToggle(ShieldTab, "🛡️ Неприступность вкл/выкл", false, function(state)
+    shieldEnabled = state
+end)
+
+local shieldInfo = Instance.new("TextLabel")
+shieldInfo.Size = UDim2.new(1, -10, 0, 20)
+shieldInfo.BackgroundTransparency = 1
+shieldInfo.Text = "Радиус: " .. SHIELD_RADIUS .. " | Цели: все"
+shieldInfo.TextColor3 = Color3.fromRGB(200, 200, 255)
+shieldInfo.TextSize = 11
+shieldInfo.Font = Enum.Font.Gotham
+shieldInfo.TextXAlignment = Enum.TextXAlignment.Left
+shieldInfo.Parent = ShieldTab
+
+task.spawn(function()
+    while true do
+        task.wait(0.05)
+        if shieldEnabled then
+            local myRoot = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+            if myRoot then
+                -- Проверяем игроков
+                if shieldTargets == "all" or shieldTargets == "players" then
+                    for _, otherPlayer in ipairs(game.Players:GetPlayers()) do
+                        if otherPlayer ~= player and otherPlayer.Character then
+                            local otherRoot = otherPlayer.Character:FindFirstChild("HumanoidRootPart")
+                            if otherRoot then
+                                local dist = (myRoot.Position - otherRoot.Position).Magnitude
+                                if dist < SHIELD_RADIUS then
+                                    local direction = (myRoot.Position - otherRoot.Position).Unit
+                                    local newPos = otherRoot.Position + (direction * SHIELD_RADIUS)
+                                    myRoot.CFrame = CFrame.new(Vector3.new(newPos.X, myRoot.Position.Y, newPos.Z))
+                                    break
+                                end
+                            end
+                        end
+                    end
+                end
+                -- Проверяем ботов
+                if shieldTargets == "all" or shieldTargets == "bots" then
+                    for _, obj in ipairs(workspace:GetDescendants()) do
+                        if obj:IsA("Model") and obj ~= player.Character then
+                            local hum = obj:FindFirstChild("Humanoid")
+                            if hum and hum.Health > 0 then
+                                local root = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("Torso")
+                                if root then
+                                    local dist = (myRoot.Position - root.Position).Magnitude
+                                    if dist < SHIELD_RADIUS then
+                                        local direction = (myRoot.Position - root.Position).Unit
+                                        local newPos = root.Position + (direction * SHIELD_RADIUS)
+                                        myRoot.CFrame = CFrame.new(Vector3.new(newPos.X, myRoot.Position.Y, newPos.Z))
+                                        break
+                                    end
+                                end
+                            end
+                        end
+                    end
                 end
             end
         end
@@ -1016,7 +1173,7 @@ local function applyESP(char)
     if not char then return end
     local oldHl = char:FindFirstChild("XenoESP")
     if oldHl then oldHl:Destroy() end
-    
+
     local hl = Instance.new("Highlight")
     hl.Name = "XenoESP"
     hl.Adornee = char
@@ -1036,7 +1193,6 @@ local function enableESPForAll()
             if otherPlayer.Character then
                 applyESP(otherPlayer.Character)
             end
-            
             local conn = otherPlayer.CharacterAdded:Connect(function(newChar)
                 if espEnabled then
                     task.wait(0.5)
@@ -1055,20 +1211,17 @@ local function disableESP()
         if esp and esp.Parent then esp:Destroy() end
     end
     espObjects = {}
-    
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj.Name == "XenoESP" then obj:Destroy() end
     end
-    
     for _, conn in ipairs(espConns) do
         if conn then conn:Disconnect() end
     end
     espConns = {}
 end
 
-createToggle(EspTab, "ESP игроков (на мёртвых + респавн)", false, function(state)
+createToggle(EspTab, "ESP игроков (мёртвые + респавн)", false, function(state)
     espEnabled = state
-    
     if state then
         enableESPForAll()
     else
@@ -1081,7 +1234,6 @@ game.Players.PlayerAdded:Connect(function(newPlayer)
         if newPlayer.Character then
             applyESP(newPlayer.Character)
         end
-        
         local conn = newPlayer.CharacterAdded:Connect(function(newChar)
             if espEnabled then
                 task.wait(0.5)
@@ -1206,10 +1358,120 @@ task.spawn(function()
     end
 end)
 
--- Активируем первую вкладку
+-- ==================== 🎨 НАСТРОЙКИ (ЦВЕТ МЕНЮ) ====================
+local SettingsTab = createTab("🎨 Цвет")
+
+createSection(SettingsTab, "Цвет меню")
+
+local menuColors = {
+    {"🔵 Синий", Color3.fromRGB(100, 150, 255)},
+    {"🟢 Зелёный", Color3.fromRGB(0, 200, 100)},
+    {"🔴 Красный", Color3.fromRGB(255, 60, 60)},
+    {"🟡 Золотой", Color3.fromRGB(255, 200, 50)},
+    {"🟣 Фиолет", Color3.fromRGB(160, 80, 255)},
+    {"🩷 Розовый", Color3.fromRGB(255, 100, 180)},
+    {"🩵 Голубой", Color3.fromRGB(0, 200, 255)},
+    {"🧡 Оранж", Color3.fromRGB(255, 130, 0)},
+    {"💚 Лайм", Color3.fromRGB(150, 255, 0)},
+    {"🩶 Серебро", Color3.fromRGB(200, 200, 220)},
+    {"💎 Бирюза", Color3.fromRGB(0, 230, 200)},
+    {"🌈 Радуга (авто)", "rainbow"},
+}
+
+local menuColorGrid = Instance.new("Frame")
+menuColorGrid.Size = UDim2.new(1, -10, 0, 0)
+menuColorGrid.BackgroundTransparency = 1
+menuColorGrid.Parent = SettingsTab
+
+local mcgLayout = Instance.new("UIGridLayout")
+mcgLayout.CellSize = UDim2.new(0, 130, 0, 30)
+mcgLayout.CellPadding = UDim2.new(0, 4, 0, 4)
+mcgLayout.Parent = menuColorGrid
+
+mcgLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    menuColorGrid.Size = UDim2.new(1, -10, 0, mcgLayout.AbsoluteContentSize.Y)
+end)
+
+local rainbowMenuMode = false
+local rainbowMenuHue = 0
+
+local function updateMenuColor(newColor)
+    MENU_COLOR = newColor
+    for _, entry in ipairs(menuColorObjects) do
+        if entry.obj and entry.obj.Parent ~= nil then
+            if entry.prop == "Color" and entry.obj:IsA("UIStroke") then
+                entry.obj.Color = newColor
+            elseif entry.prop == "BackgroundColor3" then
+                if entry.isTab then
+                    if entry.obj.BackgroundColor3 == Color3.fromRGB(40, 40, 60) then
+                        -- Не трогаем неактивные
+                    else
+                        entry.obj.BackgroundColor3 = newColor
+                    end
+                else
+                    entry.obj.BackgroundColor3 = newColor
+                end
+            elseif entry.prop == "TextColor3" and entry.obj:IsA("TextLabel") then
+                entry.obj.TextColor3 = newColor
+            elseif entry.prop == "ScrollBarImageColor3" then
+                entry.obj.ScrollBarImageColor3 = newColor
+            end
+        end
+    end
+    -- Обновляем активную вкладку
+    for _, t in ipairs(tabsFrame:GetChildren()) do
+        if t:IsA("TextButton") then
+            if t.BackgroundColor3 ~= Color3.fromRGB(40, 40, 60) then
+                t.BackgroundColor3 = newColor
+            end
+        end
+    end
+end
+
+for _, data in ipairs(menuColors) do
+    local mbtn = Instance.new("TextButton")
+    if data[2] == "rainbow" then
+        mbtn.BackgroundColor3 = Color3.fromRGB(200, 100, 200)
+    else
+        mbtn.BackgroundColor3 = data[2]
+    end
+    mbtn.BackgroundTransparency = 0.2
+    mbtn.BorderSizePixel = 0
+    mbtn.Text = data[1]
+    mbtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    mbtn.TextSize = 11
+    mbtn.Font = Enum.Font.GothamBold
+    mbtn.Parent = menuColorGrid
+
+    local mc = Instance.new("UICorner")
+    mc.CornerRadius = UDim.new(0, 6)
+    mc.Parent = mbtn
+
+    mbtn.MouseButton1Click:Connect(function()
+        if data[2] == "rainbow" then
+            rainbowMenuMode = true
+        else
+            rainbowMenuMode = false
+            updateMenuColor(data[2])
+        end
+    end)
+end
+
+task.spawn(function()
+    while true do
+        task.wait(0.05)
+        if rainbowMenuMode then
+            rainbowMenuHue = (rainbowMenuHue + 0.01) % 1
+            local c = Color3.fromHSV(rainbowMenuHue, 0.7, 1)
+            updateMenuColor(c)
+        end
+    end
+end)
+
+-- ==================== АКТИВАЦИЯ ПЕРВОЙ ВКЛАДКИ ====================
 for _, t in ipairs(tabsFrame:GetChildren()) do
     if t:IsA("TextButton") then
-        t.BackgroundColor3 = Color3.fromRGB(50, 100, 200)
+        t.BackgroundColor3 = MENU_COLOR
         break
     end
 end
@@ -1274,9 +1536,8 @@ uis.InputBegan:Connect(function(input, gpe)
     end
 end)
 
-print("✅ KSAS ULTIMATE v1.6 загружен!")
-print("📋 Вкладки: Метки | Котенок | Котенок-Бот | Сундуки | Движение | ESP")
-print("🚪 NOCLIP добавлен во вкладку Движение")
-print("👁️ ESP работает на мёртвых + после респавна")
-print("🤖 Котенок-Бот + Аимбот на ноги")
+print("✅ KSAS ULTIMATE v1.8 загружен!")
+print("📋 Вкладки: Метки | Котенок | Бот | Сундуки | Движение | Щит | ESP | Цвет")
+print("🛡️ Неприступность: радиус 5/10/15/20/30")
+print("🎨 Смена цвета меню (включая радугу)")
 print("⌨️ 2-5 = метки | − = свернуть | ✕ = закрыть")
