@@ -1,6 +1,7 @@
 -- =====================================================================
--- KSAS ULTIMATE v2.1 (ФИНАЛ + FIXED PvP CAMERA)
--- 🎯 PvP ТП на Z | 🎨 Смена цвета | 🛡️ Щит | ESP | Котенок | Сундуки
+-- KSAS ULTIMATE v3.0 (ФИНАЛ)
+-- 🎯 PvP на игроков И ботов (Z) | 🎨 Цвет | 🛡️ Щит | ESP | Котенок
+-- Оптимизировано: минимум лагов
 -- =====================================================================
 
 local player = game.Players.LocalPlayer
@@ -13,7 +14,6 @@ local old = playerGui:FindFirstChild("KSAS_ULTIMATE")
 if old then old:Destroy() end
 
 local minimized = false
-local activeTab = nil
 local MENU_COLOR = Color3.fromRGB(100, 150, 255)
 local menuColorObjects = {}
 
@@ -31,7 +31,6 @@ local botAimEnabled = true
 local farming = false
 local savedChestName = nil
 local savedHoldDuration = 0
-local visitedPositions = {}
 
 local speedEnabled = false
 local speedValue = 100
@@ -43,15 +42,18 @@ local noclipConn = nil
 local shieldEnabled = false
 local SHIELD_RADIUS = 10
 local shieldTargets = "all"
+local shieldTick = 0
 
 local espEnabled = false
 local espObjects = {}
-local espConns = {}
 
 local savedPositions = {[1] = nil, [2] = nil}
 
-local pvpTarget = nil
-local pvpCameraLock = false
+-- PvP
+local pvpTarget = nil       -- Player object
+local pvpBotTarget = nil    -- Bot model
+local pvpTargetName = nil   -- string (для ботов)
+local pvpLockConn = nil     -- соединение для лока камеры
 
 -- ==================== ФУНКЦИИ ====================
 local function applyESP(char)
@@ -78,79 +80,76 @@ local function disableESP()
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj.Name == "XenoESP" then obj:Destroy() end
     end
-    for _, conn in ipairs(espConns) do
-        if conn then conn:Disconnect() end
-    end
-    espConns = {}
 end
 
 local function findNearestBotWithName(name)
     local myRoot = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-    if not myRoot then return nil, nil end
-    local nearest = nil
-    local nearestRoot = nil
-    local nearestDist = math.huge
-    for _, obj in ipairs(workspace:GetDescendants()) do
+    if not myRoot then return nil end
+    local nearest, nearestDist = nil, math.huge
+    for _, obj in ipairs(workspace:GetChildren()) do
         if obj:IsA("Model") and obj.Name == name and obj ~= player.Character then
             local hum = obj:FindFirstChild("Humanoid")
             if hum and hum.Health > 0 then
                 local root = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("Torso") or obj:FindFirstChild("UpperTorso")
                 if root then
-                    local dist = (myRoot.Position - root.Position).Magnitude
-                    if dist < nearestDist then
-                        nearestDist = dist
-                        nearest = obj
-                        nearestRoot = root
-                    end
+                    local d = (myRoot.Position - root.Position).Magnitude
+                    if d < nearestDist then nearestDist = d nearest = obj end
                 end
             end
         end
     end
-    return nearest, nearestRoot
+    return nearest
 end
 
--- ==================== PvP ТЕЛЕПОРТ (ФИКС) ====================
+-- ==================== PvP ТЕЛЕПОРТ (ФИНАЛЬНЫЙ ФИКС) ====================
+local function unlockPvpCamera()
+    if pvpLockConn then pvpLockConn:Disconnect() pvpLockConn = nil end
+end
+
 local function doPvpTeleport()
+    -- Определяем цель: игрок или бот
+    local targetChar = nil
+    local targetRoot = nil
+    
     if pvpTarget and pvpTarget.Character then
-        local char = player.Character
-        local myRoot = char and char:FindFirstChild("HumanoidRootPart")
-        local targetRoot = pvpTarget.Character:FindFirstChild("HumanoidRootPart")
-        local hum = pvpTarget.Character:FindFirstChild("Humanoid")
-        if myRoot and targetRoot and hum and hum.Health > 0 then
-            -- Телепорт за спину (6 студиев сзади)
-            local look = targetRoot.CFrame.LookVector
-            local pos = targetRoot.Position - (look * 6)
-            pos = Vector3.new(pos.X, targetRoot.Position.Y, pos.Z)
-            myRoot.CFrame = CFrame.new(pos)
-            
-            -- Ждём применения телепорта
-            task.wait(0.05)
-            
-            -- Наводим камеру на цель (после телепорта!)
-            local head = pvpTarget.Character:FindFirstChild("Head")
-            local lookPos = head and head.Position or (targetRoot.Position + Vector3.new(0, 1.5, 0))
-            cam.CFrame = CFrame.new(cam.CFrame.Position, lookPos)
-            
-            -- Поворачиваем персонажа лицом к цели
-            myRoot.CFrame = CFrame.new(myRoot.Position, Vector3.new(targetRoot.Position.X, myRoot.Position.Y, targetRoot.Position.Z))
-            
-            -- Форсируем камеру в след. кадрах (10 раз за 0.2 сек)
-            pvpCameraLock = true
-            task.spawn(function()
-                for i = 1, 10 do
-                    if not pvpCameraLock then break end
-                    if pvpTarget and pvpTarget.Character then
-                        local h = pvpTarget.Character:FindFirstChild("Head")
-                        if h then
-                            cam.CFrame = CFrame.new(cam.CFrame.Position, h.Position)
-                        end
-                    end
-                    task.wait(0.02)
-                end
-                pvpCameraLock = false
-            end)
-        end
+        targetChar = pvpTarget.Character
+        targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
+    elseif pvpBotTarget and pvpBotTarget.Parent then
+        targetChar = pvpBotTarget
+        targetRoot = pvpBotTarget:FindFirstChild("HumanoidRootPart") or pvpBotTarget:FindFirstChild("Torso") or pvpBotTarget:FindFirstChild("UpperTorso")
     end
+    
+    if not targetRoot then return end
+    local hum = targetChar:FindFirstChild("Humanoid")
+    if not hum or hum.Health <= 0 then return end
+    
+    local myRoot = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+    if not myRoot then return end
+    
+    -- Телепорт за спину
+    local look = targetRoot.CFrame.LookVector
+    local pos = targetRoot.Position - (look * 6)
+    pos = Vector3.new(pos.X, targetRoot.Position.Y, pos.Z)
+    myRoot.CFrame = CFrame.new(pos)
+    
+    -- Отключаем старый лок
+    unlockPvpCamera()
+    
+    -- ЛОК КАМЕРЫ через RenderStepped (перебивает стандартную камеру)
+    local head = targetChar:FindFirstChild("Head")
+    pvpLockConn = runService.RenderStepped:Connect(function()
+        if not targetChar or not targetChar.Parent then unlockPvpCamera() return end
+        local h = targetChar:FindFirstChild("Head")
+        if not h then unlockPvpCamera() return end
+        
+        -- Наводим камеру на цель (перебиваем стандарт каждый кадр)
+        cam.CFrame = CFrame.new(cam.CFrame.Position, h.Position)
+    end)
+    
+    -- Авто-отключение лока через 3 секунды (чтобы можно было играть)
+    task.delay(3, function()
+        unlockPvpCamera()
+    end)
 end
 
 -- ==================== ОКНО ====================
@@ -193,7 +192,7 @@ local title = Instance.new("TextLabel")
 title.Size = UDim2.new(0.7, 0, 1, 0)
 title.Position = UDim2.new(0, 15, 0, 0)
 title.BackgroundTransparency = 1
-title.Text = "⚡ KSAS ULTIMATE v2.1"
+title.Text = "⚡ KSAS ULTIMATE v3.0"
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.TextSize = 16
 title.Font = Enum.Font.GothamBold
@@ -334,7 +333,6 @@ local function createTab(name, width)
         end
         tab.BackgroundColor3 = MENU_COLOR
         tab.TextColor3 = Color3.fromRGB(255, 255, 255)
-        activeTab = page
     end)
 
     table.insert(tabPages, page)
@@ -401,51 +399,42 @@ end
 
 -- ==================== МЕТКИ ====================
 local MarksTab = createTab("📍 Метки")
-
 createSection(MarksTab, "Слот 1")
 createButton(MarksTab, "💾 Сохранить слот 1 (клавиша 2)", function()
     local char = player.Character
     if not char then return end
     local root = char:FindFirstChild("HumanoidRootPart")
-    if not root then return end
-    savedPositions[1] = root.Position
+    if root then savedPositions[1] = root.Position end
 end)
 createButton(MarksTab, "📤 Телепорт в слот 1 (клавиша 4)", function()
     if not savedPositions[1] then return end
     local char = player.Character
     if not char then return end
     local root = char:FindFirstChild("HumanoidRootPart")
-    if not root then return end
-    root.CFrame = CFrame.new(savedPositions[1])
+    if root then root.CFrame = CFrame.new(savedPositions[1]) end
 end)
-
 createSection(MarksTab, "Слот 2")
 createButton(MarksTab, "💾 Сохранить слот 2 (клавиша 3)", function()
     local char = player.Character
     if not char then return end
     local root = char:FindFirstChild("HumanoidRootPart")
-    if not root then return end
-    savedPositions[2] = root.Position
+    if root then savedPositions[2] = root.Position end
 end)
 createButton(MarksTab, "📤 Телепорт в слот 2 (клавиша 5)", function()
     if not savedPositions[2] then return end
     local char = player.Character
     if not char then return end
     local root = char:FindFirstChild("HumanoidRootPart")
-    if not root then return end
-    root.CFrame = CFrame.new(savedPositions[2])
+    if root then root.CFrame = CFrame.new(savedPositions[2]) end
 end)
 
 -- ==================== КОТЕНОК ====================
 local StalkTab = createTab("🐱 Котенок")
-
 createSection(StalkTab, "Дистанция")
-
 local distRow = Instance.new("Frame")
 distRow.Size = UDim2.new(1, -10, 0, 32)
 distRow.BackgroundTransparency = 1
 distRow.Parent = StalkTab
-
 local distLayout = Instance.new("UIListLayout")
 distLayout.FillDirection = Enum.FillDirection.Horizontal
 distLayout.Padding = UDim.new(0, 4)
@@ -468,9 +457,7 @@ for i = 1, 6 do
     dbtn.MouseButton1Click:Connect(function()
         STALK_DISTANCE = i
         for _, b in ipairs(distRow:GetChildren()) do
-            if b:IsA("TextButton") then
-                b.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-            end
+            if b:IsA("TextButton") then b.BackgroundColor3 = Color3.fromRGB(40, 40, 60) end
         end
         dbtn.BackgroundColor3 = MENU_COLOR
     end)
@@ -556,20 +543,15 @@ end
 
 updatePlayerButtons()
 
-createButton(StalkTab, "🔄 Обновить список", function()
-    updatePlayerButtons()
-end)
+createButton(StalkTab, "🔄 Обновить список", function() updatePlayerButtons() end)
 
 -- ==================== КОТЕНОК-БОТ ====================
 local BotTab = createTab("🤖 Бот")
-
 createSection(BotTab, "Дистанция")
-
 local botDistRow = Instance.new("Frame")
 botDistRow.Size = UDim2.new(1, -10, 0, 32)
 botDistRow.BackgroundTransparency = 1
 botDistRow.Parent = BotTab
-
 local botDistLayout = Instance.new("UIListLayout")
 botDistLayout.FillDirection = Enum.FillDirection.Horizontal
 botDistLayout.Padding = UDim.new(0, 4)
@@ -592,9 +574,7 @@ for i = 1, 6 do
     dbtn.MouseButton1Click:Connect(function()
         botDistance = i
         for _, b in ipairs(botDistRow:GetChildren()) do
-            if b:IsA("TextButton") then
-                b.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-            end
+            if b:IsA("TextButton") then b.BackgroundColor3 = Color3.fromRGB(40, 40, 60) end
         end
         dbtn.BackgroundColor3 = MENU_COLOR
     end)
@@ -619,34 +599,20 @@ botStatus.TextYAlignment = Enum.TextYAlignment.Top
 botStatus.TextWrapped = true
 botStatus.Parent = BotTab
 
-local botInfo = Instance.new("TextLabel")
-botInfo.Size = UDim2.new(1, -10, 0, 20)
-botInfo.BackgroundTransparency = 1
-botInfo.Text = "Цель: - | Статус: ожидание"
-botInfo.TextColor3 = Color3.fromRGB(200, 200, 255)
-botInfo.TextSize = 11
-botInfo.Font = Enum.Font.Gotham
-botInfo.TextXAlignment = Enum.TextXAlignment.Left
-botInfo.Parent = BotTab
-
 createButton(BotTab, "📌 ЗАПОМНИТЬ (бот рядом)", function()
     local char = player.Character
     if not char then return end
     local myRoot = char:FindFirstChild("HumanoidRootPart")
     if not myRoot then return end
-    local nearest = nil
-    local nearestDist = math.huge
-    for _, obj in ipairs(workspace:GetDescendants()) do
+    local nearest, nearestDist = nil, math.huge
+    for _, obj in ipairs(workspace:GetChildren()) do
         if obj:IsA("Model") and obj ~= player.Character then
             local hum = obj:FindFirstChild("Humanoid")
             if hum and hum.Health > 0 then
                 local root = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("Torso") or obj:FindFirstChild("UpperTorso")
                 if root then
-                    local dist = (myRoot.Position - root.Position).Magnitude
-                    if dist < nearestDist and dist < 20 then
-                        nearestDist = dist
-                        nearest = obj
-                    end
+                    local d = (myRoot.Position - root.Position).Magnitude
+                    if d < nearestDist and d < 30 then nearestDist = d nearest = obj end
                 end
             end
         end
@@ -657,16 +623,8 @@ createButton(BotTab, "📌 ЗАПОМНИТЬ (бот рядом)", function()
         return
     end
     botTargetName = nearest.Name
-    local count = 0
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj:IsA("Model") and obj.Name == botTargetName then
-            local hum = obj:FindFirstChild("Humanoid")
-            if hum and hum.Health > 0 then count = count + 1 end
-        end
-    end
-    botStatus.Text = "✅ Запомнено: " .. botTargetName .. "\nБотов на карте: " .. count
+    botStatus.Text = "✅ Запомнено: " .. botTargetName
     botStatus.TextColor3 = Color3.fromRGB(0, 255, 100)
-    botInfo.Text = "Цель: " .. botTargetName .. " | Готово"
 end)
 
 local botStartBtn = createButton(BotTab, "▶️ СТАРТ (котенок + аим)", function()
@@ -679,13 +637,10 @@ local botStartBtn = createButton(BotTab, "▶️ СТАРТ (котенок + а
     if botStalking then
         botStartBtn.Text = "⏹️ СТОП"
         botStartBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
-        botStatus.Text = "🐱 Котенок + 🎯 Аимбот ВКЛ"
+        botStatus.Text = "🐱 Котенок + 🎯 Аим ВКЛ"
         botStatus.TextColor3 = Color3.fromRGB(0, 255, 100)
         local target = findNearestBotWithName(botTargetName)
-        if target then
-            botTarget = target
-            botInfo.Text = "Цель: " .. target.Name .. " | Активна"
-        end
+        if target then botTarget = target end
     else
         botStartBtn.Text = "▶️ СТАРТ (котенок + аим)"
         botStartBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
@@ -699,26 +654,14 @@ end)
 local ChestTab = createTab("📦 Сундуки")
 
 local chestStatus = Instance.new("TextLabel")
-chestStatus.Size = UDim2.new(1, -10, 0, 45)
+chestStatus.Size = UDim2.new(1, -10, 0, 30)
 chestStatus.BackgroundTransparency = 1
 chestStatus.Text = "Подойди к сундуку → СКАН"
 chestStatus.TextColor3 = Color3.fromRGB(150, 200, 255)
 chestStatus.TextSize = 12
 chestStatus.Font = Enum.Font.Gotham
 chestStatus.TextXAlignment = Enum.TextXAlignment.Left
-chestStatus.TextYAlignment = Enum.TextYAlignment.Top
-chestStatus.TextWrapped = true
 chestStatus.Parent = ChestTab
-
-local chestInfo = Instance.new("TextLabel")
-chestInfo.Size = UDim2.new(1, -10, 0, 20)
-chestInfo.BackgroundTransparency = 1
-chestInfo.Text = "Статус: ожидание"
-chestInfo.TextColor3 = Color3.fromRGB(200, 200, 255)
-chestInfo.TextSize = 11
-chestInfo.Font = Enum.Font.Gotham
-chestInfo.TextXAlignment = Enum.TextXAlignment.Left
-chestInfo.Parent = ChestTab
 
 createSection(ChestTab, "Управление")
 
@@ -727,19 +670,15 @@ createButton(ChestTab, "📋 СКАН (запомнить тип)", function()
     if not char then return end
     local myRoot = char:FindFirstChild("HumanoidRootPart")
     if not myRoot then return end
-    local nearestPrompt = nil
-    local nearestDist = math.huge
+    local nearestPrompt, nearestDist = nil, math.huge
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj:IsA("ProximityPrompt") then
             local parent = obj.Parent
             if parent then
                 local rootPart = parent:IsA("BasePart") and parent or parent:FindFirstChildWhichIsA("BasePart")
                 if rootPart then
-                    local dist = (myRoot.Position - rootPart.Position).Magnitude
-                    if dist < nearestDist and dist < 10 then
-                        nearestDist = dist
-                        nearestPrompt = obj
-                    end
+                    local d = (myRoot.Position - rootPart.Position).Magnitude
+                    if d < nearestDist and d < 10 then nearestDist = d nearestPrompt = obj end
                 end
             end
         end
@@ -751,10 +690,8 @@ createButton(ChestTab, "📋 СКАН (запомнить тип)", function()
     end
     savedChestName = nearestPrompt.Parent.Name
     savedHoldDuration = nearestPrompt.HoldDuration or 0
-    local promptType = savedHoldDuration > 0 and ("🔒 ЗАЖИМ (" .. savedHoldDuration .. "с)") or "👆 КЛИК"
-    chestStatus.Text = "✅ " .. savedChestName .. " | " .. promptType
+    chestStatus.Text = "✅ " .. savedChestName
     chestStatus.TextColor3 = Color3.fromRGB(0, 255, 100)
-    chestInfo.Text = "Готово к старту"
 end)
 
 local chestStartBtn = createButton(ChestTab, "▶️ СТАРТ СБОРА", function()
@@ -767,7 +704,7 @@ local chestStartBtn = createButton(ChestTab, "▶️ СТАРТ СБОРА", fun
     if farming then
         chestStartBtn.Text = "⏹️ СТОП"
         chestStartBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
-        chestStatus.Text = "🔄 Сбор по всей карте..."
+        chestStatus.Text = "🔄 Сбор..."
         chestStatus.TextColor3 = Color3.fromRGB(0, 255, 100)
     else
         chestStartBtn.Text = "▶️ СТАРТ СБОРА"
@@ -779,7 +716,6 @@ end)
 
 -- ==================== ДВИЖЕНИЕ ====================
 local MoveTab = createTab("⚡ Движение")
-
 createSection(MoveTab, "Скорость")
 for _, spd in ipairs({50, 100, 200, 300}) do
     createButton(MoveTab, "🏃 Speed: " .. spd, function()
@@ -800,18 +736,6 @@ createToggle(MoveTab, "Speed вкл/выкл", false, function(state)
     if char then
         local hum = char:FindFirstChild("Humanoid")
         if hum then hum.WalkSpeed = state and speedValue or 16 end
-    end
-end)
-
-createSection(MoveTab, "Прыжок")
-createToggle(MoveTab, "High Jump (100)", false, function(state)
-    local char = player.Character
-    if char then
-        local hum = char:FindFirstChild("Humanoid")
-        if hum then
-            hum.UseJumpPower = true
-            hum.JumpPower = state and 100 or 50
-        end
     end
 end)
 
@@ -896,14 +820,11 @@ end)
 
 -- ==================== ЩИТ ====================
 local ShieldTab = createTab("🛡️ Щит")
-
 createSection(ShieldTab, "Радиус")
-
 local shieldRadRow = Instance.new("Frame")
 shieldRadRow.Size = UDim2.new(1, -10, 0, 32)
 shieldRadRow.BackgroundTransparency = 1
 shieldRadRow.Parent = ShieldTab
-
 local shieldRadLayout = Instance.new("UIListLayout")
 shieldRadLayout.FillDirection = Enum.FillDirection.Horizontal
 shieldRadLayout.Padding = UDim.new(0, 4)
@@ -926,21 +847,17 @@ for _, rad in ipairs({5, 10, 15, 20, 30}) do
     rbtn.MouseButton1Click:Connect(function()
         SHIELD_RADIUS = rad
         for _, b in ipairs(shieldRadRow:GetChildren()) do
-            if b:IsA("TextButton") then
-                b.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-            end
+            if b:IsA("TextButton") then b.BackgroundColor3 = Color3.fromRGB(40, 40, 60) end
         end
         rbtn.BackgroundColor3 = MENU_COLOR
     end)
 end
 
 createSection(ShieldTab, "Цели")
-
 local shieldTargetRow = Instance.new("Frame")
 shieldTargetRow.Size = UDim2.new(1, -10, 0, 32)
 shieldTargetRow.BackgroundTransparency = 1
 shieldTargetRow.Parent = ShieldTab
-
 local shieldTargetLayout = Instance.new("UIListLayout")
 shieldTargetLayout.FillDirection = Enum.FillDirection.Horizontal
 shieldTargetLayout.Padding = UDim.new(0, 4)
@@ -963,13 +880,10 @@ local function createTargetBtn(text, value)
     btn.MouseButton1Click:Connect(function()
         shieldTargets = value
         for _, b in ipairs(shieldTargetRow:GetChildren()) do
-            if b:IsA("TextButton") then
-                b.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-            end
+            if b:IsA("TextButton") then b.BackgroundColor3 = Color3.fromRGB(40, 40, 60) end
         end
         btn.BackgroundColor3 = MENU_COLOR
     end)
-    return btn
 end
 
 createTargetBtn("Все", "all")
@@ -983,56 +897,38 @@ end)
 
 -- ==================== ESP ====================
 local EspTab = createTab("👁️ ESP")
-
-local function enableESPForAll()
-    for _, otherPlayer in ipairs(game.Players:GetPlayers()) do
-        if otherPlayer ~= player then
-            if otherPlayer.Character then applyESP(otherPlayer.Character) end
-            local conn = otherPlayer.CharacterAdded:Connect(function(newChar)
-                if espEnabled then
-                    task.wait(0.5)
-                    if newChar and newChar.Parent then applyESP(newChar) end
-                end
-            end)
-            table.insert(espConns, conn)
-        end
-    end
-end
-
 createToggle(EspTab, "ESP игроков (мёртвые + респавн)", false, function(state)
     espEnabled = state
-    if state then enableESPForAll() else disableESP() end
+    if state then
+        for _, otherPlayer in ipairs(game.Players:GetPlayers()) do
+            if otherPlayer ~= player and otherPlayer.Character then
+                applyESP(otherPlayer.Character)
+            end
+        end
+    else
+        disableESP()
+    end
 end)
 
 game.Players.PlayerAdded:Connect(function(newPlayer)
     if espEnabled and newPlayer ~= player then
         if newPlayer.Character then applyESP(newPlayer.Character) end
-        local conn = newPlayer.CharacterAdded:Connect(function(newChar)
+        newPlayer.CharacterAdded:Connect(function(newChar)
             if espEnabled then
                 task.wait(0.5)
-                if newChar and newChar.Parent then applyESP(newChar) end
+                if newChar then applyESP(newChar) end
             end
         end)
-        table.insert(espConns, conn)
     end
 end)
 
-player.CharacterAdded:Connect(function(newChar)
-    if newChar then
-        local selfEsp = newChar:FindFirstChild("XenoESP")
-        if selfEsp then selfEsp:Destroy() end
-    end
-end)
-
-task.spawn(function()
-    while true do
-        task.wait(1)
-        if espEnabled then
-            for _, otherPlayer in ipairs(game.Players:GetPlayers()) do
-                if otherPlayer ~= player and otherPlayer.Character then
-                    if not otherPlayer.Character:FindFirstChild("XenoESP") then
-                        applyESP(otherPlayer.Character)
-                    end
+game.Players.PlayerRemoving:Connect(function(p)
+    if espEnabled then
+        task.wait(0.5)
+        for _, otherPlayer in ipairs(game.Players:GetPlayers()) do
+            if otherPlayer ~= player and otherPlayer.Character then
+                if not otherPlayer.Character:FindFirstChild("XenoESP") then
+                    applyESP(otherPlayer.Character)
                 end
             end
         end
@@ -1056,16 +952,9 @@ local colorList = {
     {"🧡 Коралл", Color3.fromRGB(255, 100, 80)},
     {"💜 Лаванда", Color3.fromRGB(180, 150, 255)},
     {"🩷 Маджента", Color3.fromRGB(255, 0, 200)},
-    {"🤎 Коричневый", Color3.fromRGB(150, 75, 0)},
     {"🌊 Морской", Color3.fromRGB(0, 255, 200)},
-    {"🌅 Закат", Color3.fromRGB(255, 100, 50)},
-    {"🌌 Космос", Color3.fromRGB(80, 0, 150)},
-    {"💎 Аквамарин", Color3.fromRGB(100, 255, 220)},
-    {"🔥 Огненный", Color3.fromRGB(255, 50, 0)},
-    {"❄️ Ледяной", Color3.fromRGB(180, 230, 255)},
     {"🌈 Радужный", Color3.fromRGB(255, 0, 128)},
     {"💛 Золотой", Color3.fromRGB(255, 215, 0)},
-    {"🩶 Серебро", Color3.fromRGB(192, 192, 192)},
     {"🏆 Бронза", Color3.fromRGB(205, 127, 50)},
 }
 
@@ -1110,26 +999,13 @@ createToggle(EspTab, "🌈 Радужный режим", false, function(state)
     rainbowMode = state
 end)
 
-task.spawn(function()
-    while true do
-        task.wait(0.05)
-        if rainbowMode then
-            rainbowColor = (rainbowColor + 0.01) % 1
-            local c = Color3.fromHSV(rainbowColor, 1, 1)
-            for _, esp in ipairs(espObjects) do
-                if esp and esp.Parent then esp.FillColor = c end
-            end
-        end
-    end
-end)
-
--- ==================== 🎯 PvP (Z) ====================
+-- ==================== 🎯 PvP (Игроки + Боты) ====================
 local PvpTab = createTab("🎯 PvP")
 
-createSection(PvpTab, "Выбери цель")
+createSection(PvpTab, "Выбери игрока")
 
 local pvpScroll = Instance.new("ScrollingFrame")
-pvpScroll.Size = UDim2.new(1, -10, 0, 200)
+pvpScroll.Size = UDim2.new(1, -10, 0, 150)
 pvpScroll.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
 pvpScroll.BackgroundTransparency = 0.4
 pvpScroll.BorderSizePixel = 0
@@ -1161,7 +1037,7 @@ end)
 local pvpStatus = Instance.new("TextLabel")
 pvpStatus.Size = UDim2.new(1, -10, 0, 25)
 pvpStatus.BackgroundTransparency = 1
-pvpStatus.Text = "Цель: не выбрана | Клавиша Z = ТП"
+pvpStatus.Text = "Цель: не выбрана | Z = ТП"
 pvpStatus.TextColor3 = Color3.fromRGB(200, 200, 255)
 pvpStatus.TextSize = 12
 pvpStatus.Font = Enum.Font.Gotham
@@ -1175,11 +1051,11 @@ local function updatePvpList()
     for _, otherPlayer in ipairs(game.Players:GetPlayers()) do
         if otherPlayer ~= player then
             local btn = Instance.new("TextButton")
-            btn.Size = UDim2.new(1, 0, 0, 32)
+            btn.Size = UDim2.new(1, 0, 0, 30)
             btn.BackgroundColor3 = (pvpTarget == otherPlayer) and MENU_COLOR or Color3.fromRGB(40, 40, 60)
             btn.BackgroundTransparency = 0.3
             btn.BorderSizePixel = 0
-            btn.Text = "  " .. otherPlayer.Name
+            btn.Text = "  👤 " .. otherPlayer.Name
             btn.TextColor3 = Color3.fromRGB(220, 220, 255)
             btn.TextSize = 12
             btn.Font = Enum.Font.Gotham
@@ -1190,12 +1066,11 @@ local function updatePvpList()
             c.Parent = btn
             btn.MouseButton1Click:Connect(function()
                 pvpTarget = otherPlayer
-                pvpStatus.Text = "Цель: " .. otherPlayer.Name .. " | Z = ТП"
+                pvpBotTarget = nil
+                pvpStatus.Text = "Цель: 👤 " .. otherPlayer.Name .. " | Z = ТП"
                 pvpStatus.TextColor3 = Color3.fromRGB(0, 255, 100)
                 for _, b in ipairs(pvpList:GetChildren()) do
-                    if b:IsA("TextButton") then
-                        b.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-                    end
+                    if b:IsA("TextButton") then b.BackgroundColor3 = Color3.fromRGB(40, 40, 60) end
                 end
                 btn.BackgroundColor3 = MENU_COLOR
             end)
@@ -1208,23 +1083,100 @@ end
 
 updatePvpList()
 
-createButton(PvpTab, "🔄 Обновить список", function()
-    updatePvpList()
+createButton(PvpTab, "🔄 Обновить игроков", function() updatePvpList() end)
+
+createSection(PvpTab, "Выбери бота")
+
+local botScroll = Instance.new("ScrollingFrame")
+botScroll.Size = UDim2.new(1, -10, 0, 120)
+botScroll.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+botScroll.BackgroundTransparency = 0.4
+botScroll.BorderSizePixel = 0
+botScroll.ScrollBarThickness = 6
+botScroll.ScrollBarImageColor3 = MENU_COLOR
+botScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+botScroll.ScrollingDirection = Enum.ScrollingDirection.Y
+botScroll.Parent = PvpTab
+
+local botScrollCorner = Instance.new("UICorner")
+botScrollCorner.CornerRadius = UDim.new(0, 8)
+botScrollCorner.Parent = botScroll
+
+local botList = Instance.new("Frame")
+botList.Size = UDim2.new(1, -10, 0, 0)
+botList.Position = UDim2.new(0, 5, 0, 5)
+botList.BackgroundTransparency = 1
+botList.Parent = botScroll
+
+local botLayout = Instance.new("UIListLayout")
+botLayout.Padding = UDim.new(0, 3)
+botLayout.Parent = botList
+
+botLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    botList.Size = UDim2.new(1, -10, 0, botLayout.AbsoluteContentSize.Y)
+    botScroll.CanvasSize = UDim2.new(0, 0, 0, botLayout.AbsoluteContentSize.Y + 15)
 end)
+
+local function updateBotList()
+    for _, c in ipairs(botList:GetChildren()) do
+        if c:IsA("TextButton") then c:Destroy() end
+    end
+    local seenNames = {}
+    for _, obj in ipairs(workspace:GetChildren()) do
+        if obj:IsA("Model") and obj ~= player.Character then
+            local hum = obj:FindFirstChild("Humanoid")
+            if hum and hum.Health > 0 and not seenNames[obj.Name] then
+                local isPlayer = false
+                for _, p in ipairs(game.Players:GetPlayers()) do
+                    if p.Character == obj then isPlayer = true break end
+                end
+                if not isPlayer then
+                    seenNames[obj.Name] = true
+                    local btn = Instance.new("TextButton")
+                    btn.Size = UDim2.new(1, 0, 0, 30)
+                    btn.BackgroundColor3 = (pvpTargetName == obj.Name) and MENU_COLOR or Color3.fromRGB(40, 40, 60)
+                    btn.BackgroundTransparency = 0.3
+                    btn.BorderSizePixel = 0
+                    btn.Text = "  🤖 " .. obj.Name
+                    btn.TextColor3 = Color3.fromRGB(220, 220, 255)
+                    btn.TextSize = 12
+                    btn.Font = Enum.Font.Gotham
+                    btn.TextXAlignment = Enum.TextXAlignment.Left
+                    btn.Parent = botList
+                    local c = Instance.new("UICorner")
+                    c.CornerRadius = UDim.new(0, 6)
+                    c.Parent = btn
+                    btn.MouseButton1Click:Connect(function()
+                        pvpTargetName = obj.Name
+                        pvpBotTarget = obj
+                        pvpTarget = nil
+                        pvpStatus.Text = "Цель: 🤖 " .. obj.Name .. " | Z = ТП"
+                        pvpStatus.TextColor3 = Color3.fromRGB(0, 255, 100)
+                        for _, b in ipairs(botList:GetChildren()) do
+                            if b:IsA("TextButton") then b.BackgroundColor3 = Color3.fromRGB(40, 40, 60) end
+                        end
+                        btn.BackgroundColor3 = MENU_COLOR
+                    end)
+                end
+            end
+        end
+    end
+    task.wait()
+    botList.Size = UDim2.new(1, -10, 0, botLayout.AbsoluteContentSize.Y)
+    botScroll.CanvasSize = UDim2.new(0, 0, 0, botLayout.AbsoluteContentSize.Y + 15)
+end
+
+updateBotList()
+
+createButton(PvpTab, "🔄 Обновить ботов", function() updateBotList() end)
 
 createSection(PvpTab, "Действие")
 createButton(PvpTab, "🎯 ТП за спину + камера (или клавиша Z)", function()
-    if not pvpTarget or not pvpTarget.Character then
-        pvpStatus.Text = "❌ Цель не выбрана!"
-        pvpStatus.TextColor3 = Color3.fromRGB(255, 100, 100)
-        return
-    end
     doPvpTeleport()
 end)
 
 -- ==================== 🎨 ЦВЕТ ====================
 local SettingsTab = createTab("🎨 Цвет")
-
 createSection(SettingsTab, "Цвет меню")
 
 local menuColors = {
@@ -1312,16 +1264,15 @@ end
 
 task.spawn(function()
     while true do
-        task.wait(0.05)
+        task.wait(0.1)
         if rainbowMenuMode then
             rainbowMenuHue = (rainbowMenuHue + 0.01) % 1
-            local c = Color3.fromHSV(rainbowMenuHue, 0.7, 1)
-            updateMenuColor(c)
+            updateMenuColor(Color3.fromHSV(rainbowMenuHue, 0.7, 1))
         end
     end
 end)
 
--- ==================== АКТИВАЦИЯ ПЕРВОЙ ВКЛАДКИ ====================
+-- Активируем первую вкладку
 for _, t in ipairs(tabsFrame:GetChildren()) do
     if t:IsA("TextButton") then
         t.BackgroundColor3 = MENU_COLOR
@@ -1330,67 +1281,102 @@ for _, t in ipairs(tabsFrame:GetChildren()) do
 end
 tabPages[1].Visible = true
 
--- ==================== ОСНОВНЫЕ ЦИКЛЫ ====================
+-- ==================== ОПТИМИЗИРОВАННЫЕ ЦИКЛЫ ====================
+-- Один RenderStepped для всего движения (минимум лагов)
 runService.RenderStepped:Connect(function()
+    -- Котенок игроков
     if stalking and stalkTarget then
         local char = stalkTarget.Character
-        if not char then stalking = false stalkTarget = nil return end
-        local hum = char:FindFirstChild("Humanoid")
-        if not hum or hum.Health <= 0 then stalking = false stalkTarget = nil return end
-        local targetRoot = char:FindFirstChild("HumanoidRootPart")
-        local myRoot = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-        if not targetRoot or not myRoot then return end
-        local look = targetRoot.CFrame.LookVector
-        if look.Magnitude < 0.1 then look = (targetRoot.Position - myRoot.Position).Unit end
-        local pos = targetRoot.Position - (look * STALK_DISTANCE)
-        myRoot.CFrame = CFrame.new(Vector3.new(pos.X, targetRoot.Position.Y, pos.Z))
-    end
-end)
-
-runService.RenderStepped:Connect(function()
-    if botStalking and botTargetName then
-        local myRoot = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-        if not myRoot then return end
-        local targetValid = false
-        if botTarget and botTarget.Parent then
-            local hum = botTarget:FindFirstChild("Humanoid")
+        if char then
+            local hum = char:FindFirstChild("Humanoid")
             if hum and hum.Health > 0 then
-                local targetRoot = botTarget:FindFirstChild("HumanoidRootPart") or botTarget:FindFirstChild("Torso") or botTarget:FindFirstChild("UpperTorso")
-                if targetRoot then
-                    targetValid = true
+                local targetRoot = char:FindFirstChild("HumanoidRootPart")
+                local myRoot = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                if targetRoot and myRoot then
                     local look = targetRoot.CFrame.LookVector
                     if look.Magnitude < 0.1 then look = (targetRoot.Position - myRoot.Position).Unit end
-                    local pos = targetRoot.Position - (look * botDistance)
+                    local pos = targetRoot.Position - (look * STALK_DISTANCE)
                     myRoot.CFrame = CFrame.new(Vector3.new(pos.X, targetRoot.Position.Y, pos.Z))
-                    if botAimEnabled then
-                        local targetPos = targetRoot.Position - Vector3.new(0, 0.8, 0)
-                        cam.CFrame = CFrame.new(cam.CFrame.Position, targetPos)
+                end
+            else
+                stalking = false stalkTarget = nil
+            end
+        else
+            stalking = false stalkTarget = nil
+        end
+    end
+    
+    -- Котенок ботов + аим
+    if botStalking and botTargetName then
+        local myRoot = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+        if myRoot then
+            local valid = false
+            if botTarget and botTarget.Parent then
+                local hum = botTarget:FindFirstChild("Humanoid")
+                if hum and hum.Health > 0 then
+                    local targetRoot = botTarget:FindFirstChild("HumanoidRootPart") or botTarget:FindFirstChild("Torso") or botTarget:FindFirstChild("UpperTorso")
+                    if targetRoot then
+                        valid = true
+                        local look = targetRoot.CFrame.LookVector
+                        if look.Magnitude < 0.1 then look = (targetRoot.Position - myRoot.Position).Unit end
+                        local pos = targetRoot.Position - (look * botDistance)
+                        myRoot.CFrame = CFrame.new(Vector3.new(pos.X, targetRoot.Position.Y, pos.Z))
+                        if botAimEnabled then
+                            local targetPos = targetRoot.Position - Vector3.new(0, 0.8, 0)
+                            cam.CFrame = CFrame.new(cam.CFrame.Position, targetPos)
+                        end
                     end
                 end
             end
+            if not valid then
+                local newTarget = findNearestBotWithName(botTargetName)
+                if newTarget then botTarget = newTarget else botTarget = nil end
+            end
         end
-        if not targetValid then
-            local newTarget = findNearestBotWithName(botTargetName)
-            if newTarget then botTarget = newTarget else botTarget = nil end
+    end
+    
+    -- Радуга ESP (в том же цикле = меньше лагов)
+    if rainbowMode then
+        rainbowColor = (rainbowColor + 0.01) % 1
+        local c = Color3.fromHSV(rainbowColor, 1, 1)
+        for _, esp in ipairs(espObjects) do
+            if esp and esp.Parent then esp.FillColor = c end
         end
     end
 end)
 
-task.spawn(function()
-    while true do
-        task.wait(0.05)
-        if shieldEnabled then
-            local myRoot = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-            if myRoot then
-                if shieldTargets == "all" or shieldTargets == "players" then
-                    for _, otherPlayer in ipairs(game.Players:GetPlayers()) do
-                        if otherPlayer ~= player and otherPlayer.Character then
-                            local otherRoot = otherPlayer.Character:FindFirstChild("HumanoidRootPart")
-                            if otherRoot then
-                                local dist = (myRoot.Position - otherRoot.Position).Magnitude
+-- Щит (Heartbeat — медленнее, меньше лагов)
+runService.Heartbeat:Connect(function()
+    if shieldEnabled then
+        local myRoot = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+        if myRoot then
+            if shieldTargets == "all" or shieldTargets == "players" then
+                for _, otherPlayer in ipairs(game.Players:GetPlayers()) do
+                    if otherPlayer ~= player and otherPlayer.Character then
+                        local otherRoot = otherPlayer.Character:FindFirstChild("HumanoidRootPart")
+                        if otherRoot then
+                            local dist = (myRoot.Position - otherRoot.Position).Magnitude
+                            if dist < SHIELD_RADIUS then
+                                local direction = (myRoot.Position - otherRoot.Position).Unit
+                                local newPos = otherRoot.Position + (direction * SHIELD_RADIUS)
+                                myRoot.CFrame = CFrame.new(Vector3.new(newPos.X, myRoot.Position.Y, newPos.Z))
+                                break
+                            end
+                        end
+                    end
+                end
+            end
+            if shieldTargets == "all" or shieldTargets == "bots" then
+                for _, obj in ipairs(workspace:GetChildren()) do
+                    if obj:IsA("Model") and obj ~= player.Character then
+                        local hum = obj:FindFirstChild("Humanoid")
+                        if hum and hum.Health > 0 then
+                            local root = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("Torso")
+                            if root then
+                                local dist = (myRoot.Position - root.Position).Magnitude
                                 if dist < SHIELD_RADIUS then
-                                    local direction = (myRoot.Position - otherRoot.Position).Unit
-                                    local newPos = otherRoot.Position + (direction * SHIELD_RADIUS)
+                                    local direction = (myRoot.Position - root.Position).Unit
+                                    local newPos = root.Position + (direction * SHIELD_RADIUS)
                                     myRoot.CFrame = CFrame.new(Vector3.new(newPos.X, myRoot.Position.Y, newPos.Z))
                                     break
                                 end
@@ -1398,115 +1384,12 @@ task.spawn(function()
                         end
                     end
                 end
-                if shieldTargets == "all" or shieldTargets == "bots" then
-                    for _, obj in ipairs(workspace:GetDescendants()) do
-                        if obj:IsA("Model") and obj ~= player.Character then
-                            local hum = obj:FindFirstChild("Humanoid")
-                            if hum and hum.Health > 0 then
-                                local root = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("Torso")
-                                if root then
-                                    local dist = (myRoot.Position - root.Position).Magnitude
-                                    if dist < SHIELD_RADIUS then
-                                        local direction = (myRoot.Position - root.Position).Unit
-                                        local newPos = root.Position + (direction * SHIELD_RADIUS)
-                                        myRoot.CFrame = CFrame.new(Vector3.new(newPos.X, myRoot.Position.Y, newPos.Z))
-                                        break
-                                    end
-                                end
-                            end
-                        end
-                    end
-                end
             end
         end
     end
 end)
 
-task.spawn(function()
-    while true do
-        task.wait(0.1)
-        if farming and savedChestName then
-            local char = player.Character
-            if not char then continue end
-            local myRoot = char:FindFirstChild("HumanoidRootPart")
-            if not myRoot then continue end
-            local foundChests = {}
-            for _, obj in ipairs(workspace:GetDescendants()) do
-                if obj:IsA("ProximityPrompt") then
-                    local parent = obj.Parent
-                    if parent and parent.Name == savedChestName then
-                        local parentHold = obj.HoldDuration or 0
-                        local sameType = false
-                        if savedHoldDuration > 0 and parentHold > 0 then sameType = true
-                        elseif savedHoldDuration == 0 and parentHold == 0 then sameType = true end
-                        if sameType then
-                            local rootPart = parent:IsA("BasePart") and parent or parent:FindFirstChildWhichIsA("BasePart")
-                            if rootPart then
-                                table.insert(foundChests, {part = rootPart, prompt = obj, holdDuration = parentHold})
-                            end
-                        end
-                    end
-                end
-            end
-            if #foundChests > 0 then
-                chestInfo.Text = "Сундуков рядом: " .. #foundChests
-                for i = #foundChests, 1, -1 do
-                    if not farming then break end
-                    local entry = foundChests[i]
-                    if not entry or not entry.part or not entry.part.Parent then continue end
-                    local chestPart = entry.part
-                    local prompt = entry.prompt
-                    local holdDur = entry.holdDuration
-                    if not prompt or not prompt.Parent then continue end
-                    myRoot.CFrame = CFrame.new(chestPart.Position + Vector3.new(0, 3, 0))
-                    task.wait(0.15)
-                    local key = prompt.KeyboardKeyCode or Enum.KeyCode.E
-                    if holdDur > 0 then
-                        game:GetService("VirtualInputManager"):SendKeyEvent(true, key, false, game)
-                        local waitTime = math.max(holdDur + 0.3, 2.5)
-                        for j = 1, math.ceil(waitTime * 10) do
-                            if not farming then break end
-                            task.wait(0.1)
-                            if not chestPart or not chestPart.Parent then break end
-                        end
-                        game:GetService("VirtualInputManager"):SendKeyEvent(false, key, false, game)
-                    else
-                        game:GetService("VirtualInputManager"):SendKeyEvent(true, key, false, game)
-                        task.wait(0.1)
-                        game:GetService("VirtualInputManager"):SendKeyEvent(false, key, false, game)
-                        task.wait(0.3)
-                    end
-                end
-            else
-                chestInfo.Text = "Сундуков рядом: 0 | ТП по карте..."
-                local allChestPositions = {}
-                for _, obj in ipairs(game:GetDescendants()) do
-                    if obj:IsA("ProximityPrompt") and obj.Parent and obj.Parent.Name == savedChestName then
-                        local rootPart = obj.Parent:IsA("BasePart") and obj.Parent or obj.Parent:FindFirstChildWhichIsA("BasePart")
-                        if rootPart then table.insert(allChestPositions, rootPart.Position) end
-                    end
-                end
-                local moved = false
-                for _, pos in ipairs(allChestPositions) do
-                    local visited = false
-                    for _, vpos in ipairs(visitedPositions) do
-                        if (pos - vpos).Magnitude < 20 then visited = true break end
-                    end
-                    if not visited then
-                        table.insert(visitedPositions, pos)
-                        myRoot.CFrame = CFrame.new(pos + Vector3.new(0, 5, 0))
-                        chestInfo.Text = "ТП | Посещено: " .. #visitedPositions
-                        moved = true
-                        break
-                    end
-                end
-                if not moved then visitedPositions = {} end
-                task.wait(1)
-            end
-        end
-    end
-end)
-
+-- Noclip восстановление
 player.CharacterAdded:Connect(function()
     if noclipEnabled then
         task.wait(0.5)
@@ -1526,7 +1409,8 @@ uis.InputBegan:Connect(function(input, gpe)
 
     if key == Enum.KeyCode.Z then
         doPvpTeleport()
-        return    end
+        return
+    end
 
     if key == Enum.KeyCode.Two then
         local char = player.Character
@@ -1559,7 +1443,6 @@ uis.InputBegan:Connect(function(input, gpe)
     end
 end)
 
-print("✅ KSAS ULTIMATE v2.1 загружен!")
-print("📋 Вкладки: Метки | Котенок | Бот | Сундуки | Движение | Щит | ESP | PvP | Цвет")
-print("🎯 PvP: выбери цель → Z для ТП за спину + камера ФИКС")
-print("⌨️ 2-5 = метки | Z = PvP ТП | − = свернуть | ✕ = закрыть")
+print("✅ KSAS ULTIMATE v3.0 загружен!")
+print("🎯 PvP: игроки + боты | Z = ТП за спину + камера")
+print("⚡ Оптимизировано: минимум лагов")
