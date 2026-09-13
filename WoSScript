@@ -1,7 +1,7 @@
 -- =====================================================================
--- KSAS ULTIMATE v3.0 (ФИНАЛ)
--- 🎯 PvP на игроков И ботов (Z) | 🎨 Цвет | 🛡️ Щит | ESP | Котенок
--- Оптимизировано: минимум лагов
+-- KSAS ULTIMATE v3.1 (ФИНАЛЬНЫЙ)
+-- 🎯 PvP на игроков И ботов (Z) | Камера НЕ ломается
+-- 🎨 Цвет | 🛡️ Щит | ESP | Котенок | Сундуки
 -- =====================================================================
 
 local player = game.Players.LocalPlayer
@@ -9,6 +9,7 @@ local playerGui = player:WaitForChild("PlayerGui")
 local uis = game:GetService("UserInputService")
 local runService = game:GetService("RunService")
 local cam = workspace.CurrentCamera
+local tweenService = game:GetService("TweenService")
 
 local old = playerGui:FindFirstChild("KSAS_ULTIMATE")
 if old then old:Destroy() end
@@ -42,7 +43,6 @@ local noclipConn = nil
 local shieldEnabled = false
 local SHIELD_RADIUS = 10
 local shieldTargets = "all"
-local shieldTick = 0
 
 local espEnabled = false
 local espObjects = {}
@@ -50,10 +50,10 @@ local espObjects = {}
 local savedPositions = {[1] = nil, [2] = nil}
 
 -- PvP
-local pvpTarget = nil       -- Player object
-local pvpBotTarget = nil    -- Bot model
-local pvpTargetName = nil   -- string (для ботов)
-local pvpLockConn = nil     -- соединение для лока камеры
+local pvpTarget = nil
+local pvpBotTarget = nil
+local pvpTargetName = nil
+local pvpCooldown = false
 
 -- ==================== ФУНКЦИИ ====================
 local function applyESP(char)
@@ -101,55 +101,64 @@ local function findNearestBotWithName(name)
     return nearest
 end
 
--- ==================== PvP ТЕЛЕПОРТ (ФИНАЛЬНЫЙ ФИКС) ====================
-local function unlockPvpCamera()
-    if pvpLockConn then pvpLockConn:Disconnect() pvpLockConn = nil end
+-- ==================== PvP ТЕЛЕПОРТ (НЕ ЛОМАЕТ КАМЕРУ) ====================
+local function getPvpTargetChar()
+    if pvpBotTarget and pvpBotTarget.Parent then
+        local hum = pvpBotTarget:FindFirstChild("Humanoid")
+        if hum and hum.Health > 0 then return pvpBotTarget end
+    end
+    if pvpTarget and pvpTarget.Character then
+        local hum = pvpTarget.Character:FindFirstChild("Humanoid")
+        if hum and hum.Health > 0 then return pvpTarget.Character end
+    end
+    if pvpTargetName then
+        local newBot = findNearestBotWithName(pvpTargetName)
+        if newBot then
+            pvpBotTarget = newBot
+            return newBot
+        end
+    end
+    return nil
 end
 
 local function doPvpTeleport()
-    -- Определяем цель: игрок или бот
-    local targetChar = nil
-    local targetRoot = nil
-    
-    if pvpTarget and pvpTarget.Character then
-        targetChar = pvpTarget.Character
-        targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
-    elseif pvpBotTarget and pvpBotTarget.Parent then
-        targetChar = pvpBotTarget
-        targetRoot = pvpBotTarget:FindFirstChild("HumanoidRootPart") or pvpBotTarget:FindFirstChild("Torso") or pvpBotTarget:FindFirstChild("UpperTorso")
-    end
-    
+    if pvpCooldown then return end
+    pvpCooldown = true
+    task.delay(0.5, function() pvpCooldown = false end)
+
+    local targetChar = getPvpTargetChar()
+    if not targetChar then return end
+
+    local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
+        or targetChar:FindFirstChild("Torso")
+        or targetChar:FindFirstChild("UpperTorso")
     if not targetRoot then return end
-    local hum = targetChar:FindFirstChild("Humanoid")
-    if not hum or hum.Health <= 0 then return end
-    
+
     local myRoot = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
     if not myRoot then return end
-    
+
     -- Телепорт за спину
     local look = targetRoot.CFrame.LookVector
+    if look.Magnitude < 0.1 then
+        look = (targetRoot.Position - myRoot.Position).Unit
+    end
     local pos = targetRoot.Position - (look * 6)
     pos = Vector3.new(pos.X, targetRoot.Position.Y, pos.Z)
-    myRoot.CFrame = CFrame.new(pos)
-    
-    -- Отключаем старый лок
-    unlockPvpCamera()
-    
-    -- ЛОК КАМЕРЫ через RenderStepped (перебивает стандартную камеру)
+
+    -- Телепорт + поворот персонажа лицом к цели
+    myRoot.CFrame = CFrame.new(pos, Vector3.new(targetRoot.Position.X, pos.Y, targetRoot.Position.Z))
+
+    -- Плавно крутим камеру через TweenService (НЕ ломает управление)
     local head = targetChar:FindFirstChild("Head")
-    pvpLockConn = runService.RenderStepped:Connect(function()
-        if not targetChar or not targetChar.Parent then unlockPvpCamera() return end
-        local h = targetChar:FindFirstChild("Head")
-        if not h then unlockPvpCamera() return end
-        
-        -- Наводим камеру на цель (перебиваем стандарт каждый кадр)
-        cam.CFrame = CFrame.new(cam.CFrame.Position, h.Position)
-    end)
-    
-    -- Авто-отключение лока через 3 секунды (чтобы можно было играть)
-    task.delay(3, function()
-        unlockPvpCamera()
-    end)
+    if head then
+        local targetCF = CFrame.new(cam.CFrame.Position, head.Position)
+        local tween = tweenService:Create(
+            cam,
+            TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+            {CFrame = targetCF}
+        )
+        tween:Play()
+    end
 end
 
 -- ==================== ОКНО ====================
@@ -192,7 +201,7 @@ local title = Instance.new("TextLabel")
 title.Size = UDim2.new(0.7, 0, 1, 0)
 title.Position = UDim2.new(0, 15, 0, 0)
 title.BackgroundTransparency = 1
-title.Text = "⚡ KSAS ULTIMATE v3.0"
+title.Text = "⚡ KSAS ULTIMATE v3.1"
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.TextSize = 16
 title.Font = Enum.Font.GothamBold
@@ -922,19 +931,6 @@ game.Players.PlayerAdded:Connect(function(newPlayer)
     end
 end)
 
-game.Players.PlayerRemoving:Connect(function(p)
-    if espEnabled then
-        task.wait(0.5)
-        for _, otherPlayer in ipairs(game.Players:GetPlayers()) do
-            if otherPlayer ~= player and otherPlayer.Character then
-                if not otherPlayer.Character:FindFirstChild("XenoESP") then
-                    applyESP(otherPlayer.Character)
-                end
-            end
-        end
-    end
-end)
-
 createSection(EspTab, "🎨 Цвета")
 
 local colorList = {
@@ -1067,6 +1063,7 @@ local function updatePvpList()
             btn.MouseButton1Click:Connect(function()
                 pvpTarget = otherPlayer
                 pvpBotTarget = nil
+                pvpTargetName = nil
                 pvpStatus.Text = "Цель: 👤 " .. otherPlayer.Name .. " | Z = ТП"
                 pvpStatus.TextColor3 = Color3.fromRGB(0, 255, 100)
                 for _, b in ipairs(pvpList:GetChildren()) do
@@ -1171,7 +1168,7 @@ updateBotList()
 createButton(PvpTab, "🔄 Обновить ботов", function() updateBotList() end)
 
 createSection(PvpTab, "Действие")
-createButton(PvpTab, "🎯 ТП за спину + камера (или клавиша Z)", function()
+createButton(PvpTab, "🎯 ТП за спину + камера (Z)", function()
     doPvpTeleport()
 end)
 
@@ -1282,9 +1279,7 @@ end
 tabPages[1].Visible = true
 
 -- ==================== ОПТИМИЗИРОВАННЫЕ ЦИКЛЫ ====================
--- Один RenderStepped для всего движения (минимум лагов)
 runService.RenderStepped:Connect(function()
-    -- Котенок игроков
     if stalking and stalkTarget then
         local char = stalkTarget.Character
         if char then
@@ -1305,8 +1300,7 @@ runService.RenderStepped:Connect(function()
             stalking = false stalkTarget = nil
         end
     end
-    
-    -- Котенок ботов + аим
+
     if botStalking and botTargetName then
         local myRoot = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
         if myRoot then
@@ -1334,8 +1328,7 @@ runService.RenderStepped:Connect(function()
             end
         end
     end
-    
-    -- Радуга ESP (в том же цикле = меньше лагов)
+
     if rainbowMode then
         rainbowColor = (rainbowColor + 0.01) % 1
         local c = Color3.fromHSV(rainbowColor, 1, 1)
@@ -1345,7 +1338,6 @@ runService.RenderStepped:Connect(function()
     end
 end)
 
--- Щит (Heartbeat — медленнее, меньше лагов)
 runService.Heartbeat:Connect(function()
     if shieldEnabled then
         local myRoot = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
@@ -1389,7 +1381,6 @@ runService.Heartbeat:Connect(function()
     end
 end)
 
--- Noclip восстановление
 player.CharacterAdded:Connect(function()
     if noclipEnabled then
         task.wait(0.5)
@@ -1443,6 +1434,7 @@ uis.InputBegan:Connect(function(input, gpe)
     end
 end)
 
-print("✅ KSAS ULTIMATE v3.0 загружен!")
+print("✅ KSAS ULTIMATE v3.1 загружен!")
 print("🎯 PvP: игроки + боты | Z = ТП за спину + камера")
-print("⚡ Оптимизировано: минимум лагов")
+print("📷 Камера НЕ ломается (TweenService)")
+print("⌨️ 2-5 = метки | Z = PvP ТП | − = свернуть | ✕ = закрыть")
