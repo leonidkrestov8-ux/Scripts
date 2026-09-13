@@ -1,5 +1,5 @@
 -- =====================================================================
--- KSAS ULTIMATE v2.0 (ФИНАЛ)
+-- KSAS ULTIMATE v2.1 (ФИНАЛ + FIXED PvP CAMERA)
 -- 🎯 PvP ТП на Z | 🎨 Смена цвета | 🛡️ Щит | ESP | Котенок | Сундуки
 -- =====================================================================
 
@@ -51,6 +51,7 @@ local espConns = {}
 local savedPositions = {[1] = nil, [2] = nil}
 
 local pvpTarget = nil
+local pvpCameraLock = false
 
 -- ==================== ФУНКЦИИ ====================
 local function applyESP(char)
@@ -108,6 +109,7 @@ local function findNearestBotWithName(name)
     return nearest, nearestRoot
 end
 
+-- ==================== PvP ТЕЛЕПОРТ (ФИКС) ====================
 local function doPvpTeleport()
     if pvpTarget and pvpTarget.Character then
         local char = player.Character
@@ -115,13 +117,38 @@ local function doPvpTeleport()
         local targetRoot = pvpTarget.Character:FindFirstChild("HumanoidRootPart")
         local hum = pvpTarget.Character:FindFirstChild("Humanoid")
         if myRoot and targetRoot and hum and hum.Health > 0 then
+            -- Телепорт за спину (6 студиев сзади)
             local look = targetRoot.CFrame.LookVector
             local pos = targetRoot.Position - (look * 6)
-            myRoot.CFrame = CFrame.new(Vector3.new(pos.X, targetRoot.Position.Y, pos.Z))
+            pos = Vector3.new(pos.X, targetRoot.Position.Y, pos.Z)
+            myRoot.CFrame = CFrame.new(pos)
+            
+            -- Ждём применения телепорта
+            task.wait(0.05)
+            
+            -- Наводим камеру на цель (после телепорта!)
             local head = pvpTarget.Character:FindFirstChild("Head")
-            if head then
-                cam.CFrame = CFrame.new(cam.CFrame.Position, head.Position)
-            end
+            local lookPos = head and head.Position or (targetRoot.Position + Vector3.new(0, 1.5, 0))
+            cam.CFrame = CFrame.new(cam.CFrame.Position, lookPos)
+            
+            -- Поворачиваем персонажа лицом к цели
+            myRoot.CFrame = CFrame.new(myRoot.Position, Vector3.new(targetRoot.Position.X, myRoot.Position.Y, targetRoot.Position.Z))
+            
+            -- Форсируем камеру в след. кадрах (10 раз за 0.2 сек)
+            pvpCameraLock = true
+            task.spawn(function()
+                for i = 1, 10 do
+                    if not pvpCameraLock then break end
+                    if pvpTarget and pvpTarget.Character then
+                        local h = pvpTarget.Character:FindFirstChild("Head")
+                        if h then
+                            cam.CFrame = CFrame.new(cam.CFrame.Position, h.Position)
+                        end
+                    end
+                    task.wait(0.02)
+                end
+                pvpCameraLock = false
+            end)
         end
     end
 end
@@ -166,7 +193,7 @@ local title = Instance.new("TextLabel")
 title.Size = UDim2.new(0.7, 0, 1, 0)
 title.Position = UDim2.new(0, 15, 0, 0)
 title.BackgroundTransparency = 1
-title.Text = "⚡ KSAS ULTIMATE v2.0"
+title.Text = "⚡ KSAS ULTIMATE v2.1"
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.TextSize = 16
 title.Font = Enum.Font.GothamBold
@@ -1096,7 +1123,7 @@ task.spawn(function()
     end
 end)
 
--- ==================== 🎯 PvP (с клавишей Z) ====================
+-- ==================== 🎯 PvP (Z) ====================
 local PvpTab = createTab("🎯 PvP")
 
 createSection(PvpTab, "Выбери цель")
@@ -1497,13 +1524,10 @@ uis.InputBegan:Connect(function(input, gpe)
     if gpe then return end
     local key = input.KeyCode
 
-    -- Z = PvP телепорт
     if key == Enum.KeyCode.Z then
         doPvpTeleport()
-        return
-    end
+        return    end
 
-    -- 2-5 = метки
     if key == Enum.KeyCode.Two then
         local char = player.Character
         if char then
@@ -1535,7 +1559,7 @@ uis.InputBegan:Connect(function(input, gpe)
     end
 end)
 
-print("✅ KSAS ULTIMATE v2.0 загружен!")
+print("✅ KSAS ULTIMATE v2.1 загружен!")
 print("📋 Вкладки: Метки | Котенок | Бот | Сундуки | Движение | Щит | ESP | PvP | Цвет")
-print("🎯 PvP: выбери цель → нажми Z для ТП за спину + камера")
+print("🎯 PvP: выбери цель → Z для ТП за спину + камера ФИКС")
 print("⌨️ 2-5 = метки | Z = PvP ТП | − = свернуть | ✕ = закрыть")
