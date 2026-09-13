@@ -1,6 +1,6 @@
 -- =====================================================================
--- KSAS ULTIMATE v3.1 (ФИНАЛЬНЫЙ)
--- 🎯 PvP на игроков И ботов (Z) | Камера НЕ ломается
+-- KSAS ULTIMATE v3.2 (ФИНАЛЬНЫЙ)
+-- 🎯 PvP на игроков И ботов (Z) | Камера НЕ ломается (CameraSubject)
 -- 🎨 Цвет | 🛡️ Щит | ESP | Котенок | Сундуки
 -- =====================================================================
 
@@ -9,7 +9,6 @@ local playerGui = player:WaitForChild("PlayerGui")
 local uis = game:GetService("UserInputService")
 local runService = game:GetService("RunService")
 local cam = workspace.CurrentCamera
-local tweenService = game:GetService("TweenService")
 
 local old = playerGui:FindFirstChild("KSAS_ULTIMATE")
 if old then old:Destroy() end
@@ -101,7 +100,7 @@ local function findNearestBotWithName(name)
     return nearest
 end
 
--- ==================== PvP ТЕЛЕПОРТ (НЕ ЛОМАЕТ КАМЕРУ) ====================
+-- ==================== PvP ТЕЛЕПОРТ (ФИНАЛЬНЫЙ) ====================
 local function getPvpTargetChar()
     if pvpBotTarget and pvpBotTarget.Parent then
         local hum = pvpBotTarget:FindFirstChild("Humanoid")
@@ -122,20 +121,44 @@ local function getPvpTargetChar()
 end
 
 local function doPvpTeleport()
-    if pvpCooldown then return end
+    print("=== PvP ТП запущен ===")
+    
+    if pvpCooldown then 
+        print("❌ Кулдаун")
+        return 
+    end
     pvpCooldown = true
     task.delay(0.5, function() pvpCooldown = false end)
 
     local targetChar = getPvpTargetChar()
-    if not targetChar then return end
+    if not targetChar then 
+        print("❌ Цель не найдена")
+        return 
+    end
+    print("✅ Цель: " .. targetChar.Name)
 
     local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
         or targetChar:FindFirstChild("Torso")
         or targetChar:FindFirstChild("UpperTorso")
-    if not targetRoot then return end
+    if not targetRoot then 
+        print("❌ Нет RootPart у цели")
+        return 
+    end
 
-    local myRoot = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-    if not myRoot then return end
+    local char = player.Character
+    if not char then 
+        print("❌ Мой персонаж отсутствует")
+        return 
+    end
+    local myRoot = char:FindFirstChild("HumanoidRootPart")
+    local myHum = char:FindFirstChild("Humanoid")
+    if not myRoot or not myHum then 
+        print("❌ Мой RootPart/Humanoid отсутствует")
+        return 
+    end
+
+    print("📍 Моя позиция ДО: " .. tostring(myRoot.Position))
+    print("📍 Позиция цели: " .. tostring(targetRoot.Position))
 
     -- Телепорт за спину
     local look = targetRoot.CFrame.LookVector
@@ -143,22 +166,39 @@ local function doPvpTeleport()
         look = (targetRoot.Position - myRoot.Position).Unit
     end
     local pos = targetRoot.Position - (look * 6)
-    pos = Vector3.new(pos.X, targetRoot.Position.Y, pos.Z)
+    pos = Vector3.new(pos.X, targetRoot.Position.Y + 1, pos.Z)
+    print("🎯 Куда ТП: " .. tostring(pos))
 
-    -- Телепорт + поворот персонажа лицом к цели
-    myRoot.CFrame = CFrame.new(pos, Vector3.new(targetRoot.Position.X, pos.Y, targetRoot.Position.Z))
-
-    -- Плавно крутим камеру через TweenService (НЕ ломает управление)
-    local head = targetChar:FindFirstChild("Head")
-    if head then
-        local targetCF = CFrame.new(cam.CFrame.Position, head.Position)
-        local tween = tweenService:Create(
-            cam,
-            TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-            {CFrame = targetCF}
-        )
-        tween:Play()
+    -- Телепорт в несколько шагов (обход античита)
+    local startPos = myRoot.Position
+    for i = 1, 5 do
+        local t = i / 5
+        local stepPos = startPos:Lerp(pos, t)
+        myRoot.CFrame = CFrame.new(stepPos)
+        task.wait(0.02)
     end
+    
+    task.wait(0.1)
+    print("📍 Моя позиция ПОСЛЕ: " .. tostring(myRoot.Position))
+    print("📏 Расстояние до цели: " .. tostring((myRoot.Position - targetRoot.Position).Magnitude))
+
+    -- Поворот персонажа к цели
+    myRoot.CFrame = CFrame.new(myRoot.Position, Vector3.new(targetRoot.Position.X, myRoot.Position.Y, targetRoot.Position.Z))
+
+    -- КАМЕРА через CameraSubject (НЕ ломает управление)
+    local head = targetChar:FindFirstChild("Head")
+    if head and cam then
+        cam.CameraSubject = head
+        task.delay(0.3, function()
+            local currentChar = player.Character
+            local hum = currentChar and currentChar:FindFirstChild("Humanoid")
+            if cam and hum then 
+                cam.CameraSubject = hum 
+            end
+        end)
+    end
+    
+    print("=== Конец PvP ===")
 end
 
 -- ==================== ОКНО ====================
@@ -201,7 +241,7 @@ local title = Instance.new("TextLabel")
 title.Size = UDim2.new(0.7, 0, 1, 0)
 title.Position = UDim2.new(0, 15, 0, 0)
 title.BackgroundTransparency = 1
-title.Text = "⚡ KSAS ULTIMATE v3.1"
+title.Text = "⚡ KSAS ULTIMATE v3.2"
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.TextSize = 16
 title.Font = Enum.Font.GothamBold
@@ -995,7 +1035,7 @@ createToggle(EspTab, "🌈 Радужный режим", false, function(state)
     rainbowMode = state
 end)
 
--- ==================== 🎯 PvP (Игроки + Боты) ====================
+-- ==================== 🎯 PvP ====================
 local PvpTab = createTab("🎯 PvP")
 
 createSection(PvpTab, "Выбери игрока")
@@ -1434,7 +1474,7 @@ uis.InputBegan:Connect(function(input, gpe)
     end
 end)
 
-print("✅ KSAS ULTIMATE v3.1 загружен!")
+print("✅ KSAS ULTIMATE v3.2 загружен!")
 print("🎯 PvP: игроки + боты | Z = ТП за спину + камера")
-print("📷 Камера НЕ ломается (TweenService)")
-print("⌨️ 2-5 = метки | Z = PvP ТП | − = свернуть | ✕ = закрыть")
+print("📷 Камера через CameraSubject (не ломается)")
+print("🔧 Отладка включена - смотри консоль (F9)")
