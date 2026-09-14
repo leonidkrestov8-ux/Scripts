@@ -1,7 +1,8 @@
 -- =====================================================================
--- KSAS ULTIMATE v6.3 (ФИНАЛ)
+-- KSAS ULTIMATE v6.4 (ФИНАЛ + KeyboardKeyCode E)
 -- 🔥 Fluent UI | 🐱 Котенок | 🎯 PvP | 👁️ ESP Ботов (только с E)
 -- 🎨 МНОГО ЦВЕТОВ | 📦 Модули | ⚡ Движение | 🛡️ Щит
+-- ✅ Определение NPC с E через KeyboardKeyCode = Enum.KeyCode.E
 -- =====================================================================
 
 -- ==================== ОЧИСТКА СТАРОГО ====================
@@ -9,7 +10,7 @@ local player = game.Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
 for _, gui in ipairs(playerGui:GetChildren()) do
-    if gui.Name == "KSAS_ULTIMATE" or gui.Name == "BotScanner" or gui.Name == "XenoHub" or gui.Name == "SimpleBotScanner" then
+    if gui.Name == "KSAS_ULTIMATE" or gui.Name == "BotScanner" or gui.Name == "XenoHub" or gui.Name == "SimpleBotScanner" or gui.Name == "NPCDetector" or gui.Name == "NPCTest" then
         gui:Destroy()
     end
 end
@@ -76,6 +77,7 @@ local espRainbow = false
 local botEspEnabled = false
 local botEspRadius = 300
 local botEspColor = Color3.fromRGB(0, 255, 100)
+local botEspRainbow = false
 local botEspObjects = {}
 local botEspList = {}
 local BOT_ESP_LIMIT = 50
@@ -141,6 +143,7 @@ local function isPlayerCharacter(model)
     return false
 end
 
+-- ✅ ГЛАВНАЯ ФУНКЦИЯ: проверка KeyboardKeyCode == E
 local function botHasE(botModel)
     if not botModel or not botModel.Parent then return false end
     
@@ -148,7 +151,9 @@ local function botHasE(botModel)
     pcall(function()
         for _, obj in ipairs(botModel:GetDescendants()) do
             if obj and obj.Parent and obj:IsA("ProximityPrompt") then
-                if obj.Enabled == true and obj.MaxActivationDistance and obj.MaxActivationDistance > 0 then
+                if obj.KeyboardKeyCode == Enum.KeyCode.E 
+                   and obj.Enabled == true 
+                   and obj.MaxActivationDistance > 0 then
                     hasE = true
                     break
                 end
@@ -222,6 +227,7 @@ local function updateBotEsp()
                         or obj:FindFirstChild("UpperTorso")
                     if botRoot and botRoot.Position then
                         local dist = (myPos - botRoot.Position).Magnitude
+                        -- ✅ Только боты с KeyboardKeyCode = E
                         if dist <= botEspRadius and botHasE(obj) then
                             count = count + 1
                             seenBots[obj] = true
@@ -473,7 +479,7 @@ end
 
 -- ==================== ОКНО ====================
 local Window = Fluent:CreateWindow({
-    Title = "⚡ KSAS ULTIMATE v6.3",
+    Title = "⚡ KSAS ULTIMATE v6.4",
     SubTitle = "by KSAS",
     TabWidth = 170,
     Size = UDim2.fromOffset(620, 520),
@@ -499,8 +505,8 @@ local Tabs = {
 
 -- ==================== ГЛАВНАЯ ====================
 Tabs.Main:AddParagraph({
-    Title = "⚡ KSAS ULTIMATE v6.3",
-    Content = "🔥 Продвинутое меню на Fluent UI\n👆 RightControl = свернуть\n🎨 Темы и акцент в Настройках"
+    Title = "⚡ KSAS ULTIMATE v6.4",
+    Content = "🔥 Fluent UI\n👆 RightControl = свернуть\n🎨 Темы в Настройках\n🤖 ESP Ботов — ТОЛЬКО С E"
 })
 
 Tabs.Main:AddSection("🎯 Горячие клавиши")
@@ -975,7 +981,7 @@ Tabs.EspPlayers:AddColorpicker("EspPlayersColor", {
 
 Tabs.EspPlayers:AddSection("🌈 Быстрые цвета")
 
-local playerColorGrid = Tabs.EspPlayers:AddDropdown("EspPlayerPreset", {
+Tabs.EspPlayers:AddDropdown("EspPlayerPreset", {
     Title = "Пресет цвета",
     Values = {
         "🔴 Красный", "🟠 Оранжевый", "🟡 Жёлтый", "🟢 Зелёный",
@@ -1047,7 +1053,7 @@ Tabs.EspBots:AddSection("👁️ Управление")
 
 Tabs.EspBots:AddToggle("BotEspToggle", {
     Title = "🤖 ESP ботов С КНОПКОЙ E",
-    Description = "Показывает только NPC с ProximityPrompt",
+    Description = "Показывает только NPC с KeyboardKeyCode = E",
     Default = false,
     Callback = function(state)
         pcall(function()
@@ -1468,6 +1474,14 @@ runService.RenderStepped:Connect(function()
             if esp and esp.Parent then esp.FillColor = c end
         end
     end
+    
+    -- Радуга ESP ботов
+    if botEspRainbow then
+        local c = Color3.fromHSV((tick() % 1), 1, 1)
+        for _, hl in pairs(botEspObjects) do
+            if hl and hl.Parent then hl.FillColor = c end
+        end
+    end
 end)
 
 -- ESP БОТОВ ЦИКЛ
@@ -1580,13 +1594,13 @@ end)
 
 -- ==================== УВЕДОМЛЕНИЕ ====================
 Fluent:Notify({
-    Title = "⚡ KSAS ULTIMATE v6.3",
+    Title = "⚡ KSAS ULTIMATE v6.4",
     Content = "Загружено! RightControl = свернуть",
     Duration = 5
 })
 
-print("✅ KSAS ULTIMATE v6.3 загружен!")
+print("✅ KSAS ULTIMATE v6.4 загружен!")
 print("🔥 Fluent UI + все функции")
-print("👁️ ESP Ботов — ТОЛЬКО С E")
-print("🎨 32 цвета для ESP игроков и ботов")
+print("🤖 ESP Ботов — ТОЛЬКО С E (KeyboardKeyCode)")
+print("🎨 32 цвета для ESP")
 print("⌨️ RightControl = свернуть")
