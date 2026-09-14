@@ -1,15 +1,35 @@
 -- =====================================================================
--- KSAS ULTIMATE v5.0 (Fluent UI)
--- 🎨 Fluent API | 👁️ ESP Ботов с фильтром | 🎯 PvP | 📦 Модули
--- Все функции перенесены в Fluent
+-- KSAS ULTIMATE v6.0 (МАКСИМУМ)
+-- 🔥 Fluent UI | 🐱 Котенок | 🎯 PvP | 👁️ ESP | 📦 Модули | 🎨 Темы
 -- =====================================================================
 
+-- ==================== ОЧИСТКА СТАРОГО МЕНЮ ====================
+local player = game.Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+for _, gui in ipairs(playerGui:GetChildren()) do
+    if gui.Name == "KSAS_ULTIMATE" or gui.Name == "BotScanner" or gui.Name == "XenoHub" then
+        gui:Destroy()
+    end
+end
+
+for _, gui in ipairs(game:GetService("CoreGui"):GetChildren()) do
+    if gui.Name == "Fluent" then
+        gui:Destroy()
+    end
+end
+
+for _, obj in ipairs(workspace:GetDescendants()) do
+    if obj.Name == "XenoESP" or obj.Name == "XenoBotESP" then
+        obj:Destroy()
+    end
+end
+
+-- ==================== ЗАГРУЗКА FLUENT ====================
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
 local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
 
-local player = game.Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
 local uis = game:GetService("UserInputService")
 local runService = game:GetService("RunService")
 local cam = workspace.CurrentCamera
@@ -49,6 +69,8 @@ local shieldTargets = "all"
 
 local espEnabled = false
 local espObjects = {}
+local espColor = Color3.fromRGB(255, 0, 0)
+local espRainbow = false
 
 local botEspEnabled = false
 local botEspRadius = 300
@@ -71,7 +93,7 @@ local function applyESP(char)
     local hl = Instance.new("Highlight")
     hl.Name = "XenoESP"
     hl.Adornee = char
-    hl.FillColor = Color3.fromRGB(255, 0, 0)
+    hl.FillColor = espColor
     hl.FillTransparency = 0.5
     hl.OutlineColor = Color3.fromRGB(255, 255, 255)
     hl.OutlineTransparency = 0
@@ -109,7 +131,7 @@ local function findNearestBotWithName(name)
     return nearest
 end
 
--- ==================== ESP БОТОВ (ФИКС) ====================
+-- ==================== ESP БОТОВ ====================
 local function isPlayerCharacter(model)
     for _, p in ipairs(game.Players:GetPlayers()) do
         if p.Character == model then return true end
@@ -172,7 +194,6 @@ local function updateBotEsp()
     local seenBots = {}
     botEspList = {}
     
-    -- ФИКС: GetDescendants() вместо GetChildren()
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj:IsA("Model") and obj ~= player.Character and not isPlayerCharacter(obj) then
             local hum = obj:FindFirstChild("Humanoid")
@@ -425,60 +446,65 @@ end
 
 -- ==================== ОКНО ====================
 local Window = Fluent:CreateWindow({
-    Title = "KSAS ULTIMATE v5.0",
+    Title = "⚡ KSAS ULTIMATE v6.0",
     SubTitle = "by KSAS",
-    TabWidth = 160,
-    Size = UDim2.fromOffset(600, 500),
-    Acrylic = false,
+    TabWidth = 170,
+    Size = UDim2.fromOffset(620, 520),
+    Acrylic = true,
     Theme = "Darker",
     MinimizeKey = Enum.KeyCode.RightControl
 })
 
 local Tabs = {
-    Main = Window:AddTab({ Title = "Главная", Icon = "home" }),
-    Marks = Window:AddTab({ Title = "Метки", Icon = "map-pin" }),
-    Stalker = Window:AddTab({ Title = "Котенок", Icon = "cat" }),
-    Bot = Window:AddTab({ Title = "Котенок-Бот", Icon = "bot" }),
-    Chests = Window:AddTab({ Title = "Сундуки", Icon = "package" }),
-    Move = Window:AddTab({ Title = "Движение", Icon = "move" }),
-    Shield = Window:AddTab({ Title = "Щит", Icon = "shield" }),
-    EspPlayers = Window:AddTab({ Title = "ESP Игроков", Icon = "user" }),
-    EspBots = Window:AddTab({ Title = "ESP Ботов", Icon = "users" }),
-    PvP = Window:AddTab({ Title = "PvP", Icon = "crosshair" }),
-    Modules = Window:AddTab({ Title = "Модули", Icon = "code" }),
-    Settings = Window:AddTab({ Title = "Настройки", Icon = "settings" })
+    Main = Window:AddTab({ Title = "🏠 Главная", Icon = "home" }),
+    Marks = Window:AddTab({ Title = "📍 Метки", Icon = "map-pin" }),
+    Stalker = Window:AddTab({ Title = "🐱 Котенок", Icon = "cat" }),
+    Bot = Window:AddTab({ Title = "🤖 Котенок-Бот", Icon = "bot" }),
+    Chests = Window:AddTab({ Title = "📦 Сундуки", Icon = "package" }),
+    Move = Window:AddTab({ Title = "⚡ Движение", Icon = "move" }),
+    Shield = Window:AddTab({ Title = "🛡️ Щит", Icon = "shield" }),
+    EspPlayers = Window:AddTab({ Title = "👁️ ESP Игроков", Icon = "user" }),
+    EspBots = Window:AddTab({ Title = "🤖 ESP Ботов", Icon = "users" }),
+    PvP = Window:AddTab({ Title = "🎯 PvP", Icon = "crosshair" }),
+    Modules = Window:AddTab({ Title = "📦 Модули", Icon = "code" }),
+    Settings = Window:AddTab({ Title = "⚙️ Настройки", Icon = "settings" })
 }
 
 -- ==================== ГЛАВНАЯ ====================
-local OptionsMain = Tabs.Main:AddSection("Управление")
-
 Tabs.Main:AddParagraph({
-    Title = "KSAS ULTIMATE v5.0",
-    Content = "Меню на Fluent UI | Мин/макс: RightControl | Меняй тему в настройках"
+    Title = "⚡ KSAS ULTIMATE v6.0",
+    Content = "🔥 Продвинутое меню на Fluent UI\n👆 RightControl = свернуть\n🎨 Темы и акцент в Настройках"
+})
+
+Tabs.Main:AddSection("🎯 Горячие клавиши")
+Tabs.Main:AddParagraph({
+    Title = "⌨️ Клавиши",
+    Content = "2 = Сохранить метку 1\n3 = Сохранить метку 2\n4 = ТП в метку 1\n5 = ТП в метку 2\nZ = PvP ТП за спину\nRightControl = свернуть меню"
 })
 
 -- ==================== МЕТКИ ====================
-local OptionsMarks = Tabs.Marks:AddSection("Слот 1")
+Tabs.Marks:AddSection("📍 Слот 1")
 
 Tabs.Marks:AddButton({
-    Title = "💾 Сохранить слот 1 (клавиша 2)",
-    Description = "Запомнить текущую позицию",
+    Title = "💾 Сохранить слот 1",
+    Description = "Клавиша 2",
     Callback = function()
         local char = player.Character
         if not char then return end
         local root = char:FindFirstChild("HumanoidRootPart")
         if root then 
             savedPositions[1] = root.Position
-            Fluent:Notify({ Title = "Метка 1", Content = "Сохранено!", Duration = 2 })
+            Fluent:Notify({ Title = "📍 Метка 1", Content = "Сохранено!", Duration = 2 })
         end
     end
 })
 
 Tabs.Marks:AddButton({
-    Title = "📤 Телепорт в слот 1 (клавиша 4)",
+    Title = "📤 Телепорт в слот 1",
+    Description = "Клавиша 4",
     Callback = function()
         if not savedPositions[1] then
-            Fluent:Notify({ Title = "Метка 1", Content = "Пусто!", Duration = 2 })
+            Fluent:Notify({ Title = "❌ Метка 1", Content = "Пусто!", Duration = 2 })
             return
         end
         local char = player.Character
@@ -489,26 +515,28 @@ Tabs.Marks:AddButton({
     end
 })
 
-Tabs.Marks:AddSection("Слот 2")
+Tabs.Marks:AddSection("📍 Слот 2")
 
 Tabs.Marks:AddButton({
-    Title = "💾 Сохранить слот 2 (клавиша 3)",
+    Title = "💾 Сохранить слот 2",
+    Description = "Клавиша 3",
     Callback = function()
         local char = player.Character
         if not char then return end
         local root = char:FindFirstChild("HumanoidRootPart")
         if root then 
             savedPositions[2] = root.Position
-            Fluent:Notify({ Title = "Метка 2", Content = "Сохранено!", Duration = 2 })
+            Fluent:Notify({ Title = "📍 Метка 2", Content = "Сохранено!", Duration = 2 })
         end
     end
 })
 
 Tabs.Marks:AddButton({
-    Title = "📤 Телепорт в слот 2 (клавиша 5)",
+    Title = "📤 Телепорт в слот 2",
+    Description = "Клавиша 5",
     Callback = function()
         if not savedPositions[2] then
-            Fluent:Notify({ Title = "Метка 2", Content = "Пусто!", Duration = 2 })
+            Fluent:Notify({ Title = "❌ Метка 2", Content = "Пусто!", Duration = 2 })
             return
         end
         local char = player.Character
@@ -520,10 +548,10 @@ Tabs.Marks:AddButton({
 })
 
 -- ==================== КОТЕНОК ====================
-Tabs.Stalker:AddSection("Настройки")
+Tabs.Stalker:AddSection("⚙️ Настройки")
 
-local StalkDistSlider = Tabs.Stalker:AddSlider("StalkDist", {
-    Title = "Дистанция за спиной",
+Tabs.Stalker:AddSlider("StalkDist", {
+    Title = "📏 Дистанция за спиной",
     Default = 3,
     Min = 1,
     Max = 6,
@@ -533,10 +561,10 @@ local StalkDistSlider = Tabs.Stalker:AddSlider("StalkDist", {
     end
 })
 
-Tabs.Stalker:AddSection("Игроки")
+Tabs.Stalker:AddSection("👥 Игроки")
 
 local stalkerDropdown = Tabs.Stalker:AddDropdown("StalkerTarget", {
-    Title = "Выбери цель",
+    Title = "🎯 Выбери цель",
     Values = {},
     Multi = false,
     Default = "",
@@ -566,7 +594,7 @@ end
 refreshStalkerList()
 
 Tabs.Stalker:AddButton({
-    Title = "🔄 Обновить список игроков",
+    Title = "🔄 Обновить список",
     Callback = function() refreshStalkerList() end
 })
 
@@ -580,10 +608,10 @@ Tabs.Stalker:AddButton({
 })
 
 -- ==================== КОТЕНОК-БОТ ====================
-Tabs.Bot:AddSection("Настройки")
+Tabs.Bot:AddSection("⚙️ Настройки")
 
 Tabs.Bot:AddSlider("BotDist", {
-    Title = "Дистанция за спиной бота",
+    Title = "📏 Дистанция за спиной бота",
     Default = 3,
     Min = 1,
     Max = 6,
@@ -620,15 +648,7 @@ Tabs.Bot:AddSlider("ClickInterval", {
     end
 })
 
-Tabs.Bot:AddSection("Управление")
-
-local botTargetInput = Tabs.Bot:AddInput("BotNameInput", {
-    Title = "📝 Имя бота (запомнить)",
-    Placeholder = "Например: Cult Commander",
-    Callback = function(Value)
-        -- Ничего не делаем при вводе
-    end
-})
+Tabs.Bot:AddSection("🎮 Управление")
 
 Tabs.Bot:AddButton({
     Title = "📌 ЗАПОМНИТЬ бота рядом",
@@ -683,11 +703,11 @@ Tabs.Bot:AddButton({
 })
 
 -- ==================== СУНДУКИ ====================
-Tabs.Chests:AddSection("Управление")
+Tabs.Chests:AddSection("📦 Управление")
 
-local chestStatusLabel = Tabs.Chests:AddParagraph({
-    Title = "Статус",
-    Content = "Подойди к сундуку → СКАН"
+Tabs.Chests:AddParagraph({
+    Title = "📝 Как использовать",
+    Content = "1️⃣ Подойди к сундуку\n2️⃣ Нажми СКАН\n3️⃣ Нажми СТАРТ СБОРА"
 })
 
 Tabs.Chests:AddButton({
@@ -723,7 +743,7 @@ Tabs.Chests:AddButton({
 })
 
 -- ==================== ДВИЖЕНИЕ ====================
-Tabs.Move:AddSection("Скорость")
+Tabs.Move:AddSection("⚡ Скорость")
 
 Tabs.Move:AddSlider("SpeedSlider", {
     Title = "🏃 Speed",
@@ -756,10 +776,10 @@ Tabs.Move:AddToggle("SpeedToggle", {
     end
 })
 
-Tabs.Move:AddSection("Полёт")
+Tabs.Move:AddSection("🕊️ Полёт")
 
 Tabs.Move:AddToggle("FlyToggle", {
-    Title = "🕊️ Fly вкл/выкл",
+    Title = "Fly вкл/выкл",
     Default = false,
     Callback = function(state)
         flyEnabled = state
@@ -816,10 +836,10 @@ Tabs.Move:AddToggle("FlyToggle", {
     end
 })
 
-Tabs.Move:AddSection("Noclip")
+Tabs.Move:AddSection("🚪 Noclip")
 
 Tabs.Move:AddToggle("NoclipToggle", {
-    Title = "🚪 Noclip вкл/выкл",
+    Title = "Noclip вкл/выкл",
     Default = false,
     Callback = function(state)
         noclipEnabled = state
@@ -846,10 +866,10 @@ Tabs.Move:AddToggle("NoclipToggle", {
 })
 
 -- ==================== ЩИТ ====================
-Tabs.Shield:AddSection("Радиус")
+Tabs.Shield:AddSection("🛡️ Радиус")
 
 Tabs.Shield:AddSlider("ShieldRadius", {
-    Title = "🛡️ Радиус щита",
+    Title = "Радиус щита",
     Default = 10,
     Min = 5,
     Max = 30,
@@ -859,9 +879,9 @@ Tabs.Shield:AddSlider("ShieldRadius", {
     end
 })
 
-Tabs.Shield:AddSection("Цели")
+Tabs.Shield:AddSection("🎯 Цели")
 
-local shieldTargetDropdown = Tabs.Shield:AddDropdown("ShieldTargets", {
+Tabs.Shield:AddDropdown("ShieldTargets", {
     Title = "Кого отталкивать",
     Values = {"Все", "Игроки", "Боты"},
     Default = "Все",
@@ -882,10 +902,10 @@ Tabs.Shield:AddToggle("ShieldToggle", {
 })
 
 -- ==================== ESP ИГРОКОВ ====================
-Tabs.EspPlayers:AddSection("Управление")
+Tabs.EspPlayers:AddSection("👁️ Управление")
 
 Tabs.EspPlayers:AddToggle("EspPlayersToggle", {
-    Title = "👁️ ESP игроков (мёртвые + респавн)",
+    Title = "ESP игроков (мёртвые + респавн)",
     Default = false,
     Callback = function(state)
         espEnabled = state
@@ -915,10 +935,11 @@ end)
 
 Tabs.EspPlayers:AddSection("🎨 Цвет")
 
-local espColorPicker = Tabs.EspPlayers:AddColorpicker("EspPlayersColor", {
-    Title = "Цвет ESP игроков",
+Tabs.EspPlayers:AddColorpicker("EspPlayersColor", {
+    Title = "Цвет ESP",
     Default = Color3.fromRGB(255, 0, 0),
     Callback = function(color)
+        espColor = color
         for _, esp in ipairs(espObjects) do
             if esp and esp.Parent then esp.FillColor = color end
         end
@@ -929,15 +950,15 @@ Tabs.EspPlayers:AddToggle("EspRainbow", {
     Title = "🌈 Радужный режим",
     Default = false,
     Callback = function(state)
-        rainbowMode = state
+        espRainbow = state
     end
 })
 
 -- ==================== ESP БОТОВ ====================
-Tabs.EspBots:AddSection("Управление")
+Tabs.EspBots:AddSection("🤖 Управление")
 
 Tabs.EspBots:AddToggle("BotEspToggle", {
-    Title = "🤖 ESP ботов вкл/выкл",
+    Title = "ESP ботов вкл/выкл",
     Default = false,
     Callback = function(state)
         botEspEnabled = state
@@ -951,7 +972,7 @@ Tabs.EspBots:AddToggle("BotEspToggle", {
     end
 })
 
-Tabs.EspBots:AddSection("Настройки")
+Tabs.EspBots:AddSection("⚙️ Настройки")
 
 Tabs.EspBots:AddSlider("BotEspRadius", {
     Title = "📏 Радиус",
@@ -966,7 +987,7 @@ Tabs.EspBots:AddSlider("BotEspRadius", {
 
 Tabs.EspBots:AddSection("🎯 Фильтр")
 
-local botEspFilterDropdown = Tabs.EspBots:AddDropdown("BotEspFilter", {
+Tabs.EspBots:AddDropdown("BotEspFilter", {
     Title = "Фильтр ботов",
     Values = {"📦 Все боты", "🔵 С кнопкой E", "⚪ Без кнопки E"},
     Default = "📦 Все боты",
@@ -983,7 +1004,7 @@ local botEspFilterDropdown = Tabs.EspBots:AddDropdown("BotEspFilter", {
 
 Tabs.EspBots:AddSection("🎨 Цвет")
 
-local botEspColorPicker = Tabs.EspBots:AddColorpicker("BotEspColor", {
+Tabs.EspBots:AddColorpicker("BotEspColor", {
     Title = "Цвет ESP ботов",
     Default = Color3.fromRGB(0, 255, 100),
     Callback = function(color)
@@ -1036,7 +1057,7 @@ Tabs.EspBots:AddButton({
 })
 
 -- ==================== PvP ====================
-Tabs.PvP:AddSection("Выбери игрока")
+Tabs.PvP:AddSection("👥 Выбери игрока")
 
 local pvpDropdown = Tabs.PvP:AddDropdown("PvpTarget", {
     Title = "Цель для ТП",
@@ -1072,10 +1093,11 @@ Tabs.PvP:AddButton({
     Callback = function() refreshPvpList() end
 })
 
-Tabs.PvP:AddSection("Действие")
+Tabs.PvP:AddSection("🎯 Действие")
 
 Tabs.PvP:AddButton({
-    Title = "🎯 ТП за спину + камера (Z)",
+    Title = "🎯 ТП за спину + камера",
+    Description = "Клавиша Z",
     Callback = function()
         doPvpTeleport()
     end
@@ -1151,7 +1173,7 @@ local moduleNameInput = Tabs.Modules:AddInput("ModuleName", {
 
 local moduleCodeInput = Tabs.Modules:AddInput("ModuleCode", {
     Title = "💻 Код модуля",
-    Placeholder = "print('Hello from module!')",
+    Placeholder = "print('Hello!')",
     Callback = function(Value) end
 })
 
@@ -1192,7 +1214,7 @@ end
 -- ==================== НАСТРОЙКИ ====================
 Tabs.Settings:AddSection("🎨 Тема")
 
-local themeDropdown = Tabs.Settings:AddDropdown("ThemeSelect", {
+Tabs.Settings:AddDropdown("ThemeSelect", {
     Title = "Тема меню",
     Values = {"Dark", "Darker", "Light", "Aqua", "Amethyst", "Rose"},
     Default = "Darker",
@@ -1204,11 +1226,10 @@ local themeDropdown = Tabs.Settings:AddDropdown("ThemeSelect", {
 
 Tabs.Settings:AddSection("🎨 Акцентный цвет")
 
-local accentColorpicker = Tabs.Settings:AddColorpicker("AccentColor", {
+Tabs.Settings:AddColorpicker("AccentColor", {
     Title = "Цвет акцента",
     Default = Color3.fromRGB(100, 150, 255),
     Callback = function(color)
-        -- Fluent сам подхватывает цвет акцента
         Fluent:Notify({ Title = "🎨 Цвет", Content = "Изменён", Duration = 1 })
     end
 })
@@ -1224,7 +1245,7 @@ Tabs.Settings:AddKeybind("MinimizeKeybind", {
     end
 })
 
-Tabs.Settings:AddSection("💾 Сохранение настроек")
+Tabs.Settings:AddSection("💾 Сохранение")
 
 SaveManager:SetLibrary(Fluent)
 InterfaceManager:SetLibrary(Fluent)
@@ -1290,6 +1311,14 @@ runService.RenderStepped:Connect(function()
             end
         end
     end
+
+    -- Радуга ESP
+    if espRainbow then
+        local c = Color3.fromHSV((tick() % 1), 1, 1)
+        for _, esp in ipairs(espObjects) do
+            if esp and esp.Parent then esp.FillColor = c end
+        end
+    end
 end)
 
 -- ESP БОТОВ ЦИКЛ
@@ -1347,7 +1376,6 @@ runService.Heartbeat:Connect(function()
     end
 end)
 
--- Noclip восстановление
 player.CharacterAdded:Connect(function()
     if noclipEnabled then
         task.wait(0.5)
@@ -1403,12 +1431,12 @@ end)
 
 -- ==================== УВЕДОМЛЕНИЕ ====================
 Fluent:Notify({
-    Title = "✅ KSAS ULTIMATE v5.0",
+    Title = "⚡ KSAS ULTIMATE v6.0",
     Content = "Загружено! RightControl = свернуть",
     Duration = 5
 })
 
-print("✅ KSAS ULTIMATE v5.0 (Fluent UI) загружен!")
-print("🎨 Тема меняется в Настройках")
-print("🎯 PvP: Z")
-print("⌨️ RightControl = свернуть меню")
+print("✅ KSAS ULTIMATE v6.0 загружен!")
+print("🔥 Fluent UI + все функции")
+print("🎨 Темы в Настройках")
+print("⌨️ RightControl = свернуть")
