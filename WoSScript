@@ -1,8 +1,8 @@
 -- =====================================================================
--- KSAS ULTIMATE v6.4 (ФИНАЛ + KeyboardKeyCode E)
+-- KSAS ULTIMATE v6.5 (ФИНАЛ)
 -- 🔥 Fluent UI | 🐱 Котенок | 🎯 PvP | 👁️ ESP Ботов (только с E)
 -- 🎨 МНОГО ЦВЕТОВ | 📦 Модули | ⚡ Движение | 🛡️ Щит
--- ✅ Определение NPC с E через KeyboardKeyCode = Enum.KeyCode.E
+-- ✅ Радиус 6000 | ✅ Лимит 200 ботов | ✅ Автообновление
 -- =====================================================================
 
 -- ==================== ОЧИСТКА СТАРОГО ====================
@@ -10,7 +10,7 @@ local player = game.Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
 for _, gui in ipairs(playerGui:GetChildren()) do
-    if gui.Name == "KSAS_ULTIMATE" or gui.Name == "BotScanner" or gui.Name == "XenoHub" or gui.Name == "SimpleBotScanner" or gui.Name == "NPCDetector" or gui.Name == "NPCTest" then
+    if gui.Name == "KSAS_ULTIMATE" or gui.Name == "BotScanner" or gui.Name == "XenoHub" or gui.Name == "SimpleBotScanner" or gui.Name == "NPCDetector" or gui.Name == "NPCTest" or gui.Name == "TestE" then
         gui:Destroy()
     end
 end
@@ -75,12 +75,12 @@ local espColor = Color3.fromRGB(255, 0, 0)
 local espRainbow = false
 
 local botEspEnabled = false
-local botEspRadius = 300
+local botEspRadius = 6000
 local botEspColor = Color3.fromRGB(0, 255, 100)
 local botEspRainbow = false
 local botEspObjects = {}
 local botEspList = {}
-local BOT_ESP_LIMIT = 50
+local BOT_ESP_LIMIT = 200
 
 local savedPositions = {[1] = nil, [2] = nil}
 local pvpTarget = nil
@@ -143,7 +143,6 @@ local function isPlayerCharacter(model)
     return false
 end
 
--- ✅ ГЛАВНАЯ ФУНКЦИЯ: проверка KeyboardKeyCode == E
 local function botHasE(botModel)
     if not botModel or not botModel.Parent then return false end
     
@@ -227,7 +226,6 @@ local function updateBotEsp()
                         or obj:FindFirstChild("UpperTorso")
                     if botRoot and botRoot.Position then
                         local dist = (myPos - botRoot.Position).Magnitude
-                        -- ✅ Только боты с KeyboardKeyCode = E
                         if dist <= botEspRadius and botHasE(obj) then
                             count = count + 1
                             seenBots[obj] = true
@@ -479,7 +477,7 @@ end
 
 -- ==================== ОКНО ====================
 local Window = Fluent:CreateWindow({
-    Title = "⚡ KSAS ULTIMATE v6.4",
+    Title = "⚡ KSAS ULTIMATE v6.5",
     SubTitle = "by KSAS",
     TabWidth = 170,
     Size = UDim2.fromOffset(620, 520),
@@ -505,7 +503,7 @@ local Tabs = {
 
 -- ==================== ГЛАВНАЯ ====================
 Tabs.Main:AddParagraph({
-    Title = "⚡ KSAS ULTIMATE v6.4",
+    Title = "⚡ KSAS ULTIMATE v6.5",
     Content = "🔥 Fluent UI\n👆 RightControl = свернуть\n🎨 Темы в Настройках\n🤖 ESP Ботов — ТОЛЬКО С E"
 })
 
@@ -875,8 +873,7 @@ Tabs.Move:AddToggle("NoclipToggle", {
     Title = "Noclip вкл/выкл",
     Default = false,
     Callback = function(state)
-        noclipEnabled = state
-        if state then
+        noclipEnabled = state        if state then
             noclipConn = runService.Stepped:Connect(function()
                 if not noclipEnabled then return end
                 local char = player.Character
@@ -1060,7 +1057,18 @@ Tabs.EspBots:AddToggle("BotEspToggle", {
             botEspEnabled = state
             if state then
                 updateBotEsp()
-                Fluent:Notify({ Title = "🤖 ESP Ботов", Content = "ВКЛ (только с E)", Duration = 2 })
+                task.wait(0.5)
+                updateBotEsp()
+                task.wait(1)
+                updateBotEsp()
+                task.wait(2)
+                updateBotEsp()
+                
+                Fluent:Notify({ 
+                    Title = "🤖 ESP Ботов", 
+                    Content = "ВКЛ | Найдено: " .. #botEspList, 
+                    Duration = 3 
+                })
             else
                 clearAllBotEsp()
                 Fluent:Notify({ Title = "🤖 ESP Ботов", Content = "ВЫКЛ", Duration = 2 })
@@ -1073,10 +1081,10 @@ Tabs.EspBots:AddSection("⚙️ Настройки")
 
 Tabs.EspBots:AddSlider("BotEspRadius", {
     Title = "📏 Радиус поиска",
-    Default = 300,
-    Min = 50,
-    Max = 1000,
-    Rounding = 50,
+    Default = 6000,
+    Min = 100,
+    Max = 10000,
+    Rounding = 100,
     Callback = function(Value)
         botEspRadius = Value
     end
@@ -1594,13 +1602,14 @@ end)
 
 -- ==================== УВЕДОМЛЕНИЕ ====================
 Fluent:Notify({
-    Title = "⚡ KSAS ULTIMATE v6.4",
+    Title = "⚡ KSAS ULTIMATE v6.5",
     Content = "Загружено! RightControl = свернуть",
     Duration = 5
 })
 
-print("✅ KSAS ULTIMATE v6.4 загружен!")
+print("✅ KSAS ULTIMATE v6.5 загружен!")
 print("🔥 Fluent UI + все функции")
 print("🤖 ESP Ботов — ТОЛЬКО С E (KeyboardKeyCode)")
-print("🎨 32 цвета для ESP")
+print("📏 Радиус по умолчанию: 6000")
+print("📦 Лимит ботов: 200")
 print("⌨️ RightControl = свернуть")
