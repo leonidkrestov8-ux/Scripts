@@ -1,15 +1,15 @@
 -- =====================================================================
--- KSAS ULTIMATE v6.1 (ФИКС Callback Error)
--- 🔥 Fluent UI | 🐱 Котенок | 🎯 PvP | 👁️ ESP | 📦 Модули | 🎨 Темы
--- ✅ Фильтр ботов E/без E с защитой от ошибок
+-- KSAS ULTIMATE v6.3 (ФИНАЛ)
+-- 🔥 Fluent UI | 🐱 Котенок | 🎯 PvP | 👁️ ESP Ботов (только с E)
+-- 🎨 МНОГО ЦВЕТОВ | 📦 Модули | ⚡ Движение | 🛡️ Щит
 -- =====================================================================
 
--- ==================== ОЧИСТКА СТАРОГО МЕНЮ ====================
+-- ==================== ОЧИСТКА СТАРОГО ====================
 local player = game.Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
 for _, gui in ipairs(playerGui:GetChildren()) do
-    if gui.Name == "KSAS_ULTIMATE" or gui.Name == "BotScanner" or gui.Name == "XenoHub" then
+    if gui.Name == "KSAS_ULTIMATE" or gui.Name == "BotScanner" or gui.Name == "XenoHub" or gui.Name == "SimpleBotScanner" then
         gui:Destroy()
     end
 end
@@ -75,10 +75,10 @@ local espRainbow = false
 
 local botEspEnabled = false
 local botEspRadius = 300
-local botEspFilter = "all"
 local botEspColor = Color3.fromRGB(0, 255, 100)
 local botEspObjects = {}
 local botEspList = {}
+local BOT_ESP_LIMIT = 50
 
 local savedPositions = {[1] = nil, [2] = nil}
 local pvpTarget = nil
@@ -132,7 +132,7 @@ local function findNearestBotWithName(name)
     return nearest
 end
 
--- ==================== ESP БОТОВ (С ЗАЩИТОЙ ОТ ОШИБОК) ====================
+-- ==================== ESP БОТОВ (ТОЛЬКО С E) ====================
 local function isPlayerCharacter(model)
     if not model then return false end
     for _, p in ipairs(game.Players:GetPlayers()) do
@@ -148,9 +148,7 @@ local function botHasE(botModel)
     pcall(function()
         for _, obj in ipairs(botModel:GetDescendants()) do
             if obj and obj.Parent and obj:IsA("ProximityPrompt") then
-                local enabled = obj.Enabled
-                local dist = obj.MaxActivationDistance
-                if enabled == true and dist and dist > 0 then
+                if obj.Enabled == true and obj.MaxActivationDistance and obj.MaxActivationDistance > 0 then
                     hasE = true
                     break
                 end
@@ -158,23 +156,6 @@ local function botHasE(botModel)
         end
     end)
     return hasE
-end
-
-local function botMatchesFilter(botModel)
-    if not botModel then return false end
-    
-    if botEspFilter == "all" then 
-        return true
-    elseif botEspFilter == "withE" then 
-        local ok, result = pcall(botHasE, botModel)
-        if ok then return result end
-        return false
-    elseif botEspFilter == "noE" then 
-        local ok, result = pcall(botHasE, botModel)
-        if ok then return not result end
-        return false
-    end
-    return false
 end
 
 local function addBotEsp(botModel)
@@ -228,8 +209,11 @@ local function updateBotEsp()
         local myPos = myRoot.Position
         local seenBots = {}
         botEspList = {}
+        local count = 0
         
         for _, obj in ipairs(workspace:GetDescendants()) do
+            if count >= BOT_ESP_LIMIT then break end
+            
             if obj and obj.Parent and obj:IsA("Model") and obj ~= player.Character and not isPlayerCharacter(obj) then
                 local hum = obj:FindFirstChild("Humanoid")
                 if hum and hum.Health and hum.Health > 0 then
@@ -238,7 +222,8 @@ local function updateBotEsp()
                         or obj:FindFirstChild("UpperTorso")
                     if botRoot and botRoot.Position then
                         local dist = (myPos - botRoot.Position).Magnitude
-                        if dist <= botEspRadius and botMatchesFilter(obj) then
+                        if dist <= botEspRadius and botHasE(obj) then
+                            count = count + 1
                             seenBots[obj] = true
                             table.insert(botEspList, {model = obj, root = botRoot, distance = dist})
                             if not botEspObjects[obj] then
@@ -488,7 +473,7 @@ end
 
 -- ==================== ОКНО ====================
 local Window = Fluent:CreateWindow({
-    Title = "⚡ KSAS ULTIMATE v6.1",
+    Title = "⚡ KSAS ULTIMATE v6.3",
     SubTitle = "by KSAS",
     TabWidth = 170,
     Size = UDim2.fromOffset(620, 520),
@@ -506,7 +491,7 @@ local Tabs = {
     Move = Window:AddTab({ Title = "⚡ Движение", Icon = "move" }),
     Shield = Window:AddTab({ Title = "🛡️ Щит", Icon = "shield" }),
     EspPlayers = Window:AddTab({ Title = "👁️ ESP Игроков", Icon = "user" }),
-    EspBots = Window:AddTab({ Title = "🤖 ESP Ботов", Icon = "users" }),
+    EspBots = Window:AddTab({ Title = "🤖 ESP Ботов (E)", Icon = "users" }),
     PvP = Window:AddTab({ Title = "🎯 PvP", Icon = "crosshair" }),
     Modules = Window:AddTab({ Title = "📦 Модули", Icon = "code" }),
     Settings = Window:AddTab({ Title = "⚙️ Настройки", Icon = "settings" })
@@ -514,7 +499,7 @@ local Tabs = {
 
 -- ==================== ГЛАВНАЯ ====================
 Tabs.Main:AddParagraph({
-    Title = "⚡ KSAS ULTIMATE v6.1",
+    Title = "⚡ KSAS ULTIMATE v6.3",
     Content = "🔥 Продвинутое меню на Fluent UI\n👆 RightControl = свернуть\n🎨 Темы и акцент в Настройках"
 })
 
@@ -975,10 +960,10 @@ game.Players.PlayerAdded:Connect(function(newPlayer)
     end
 end)
 
-Tabs.EspPlayers:AddSection("🎨 Цвет")
+Tabs.EspPlayers:AddSection("🎨 Цвет ESP")
 
 Tabs.EspPlayers:AddColorpicker("EspPlayersColor", {
-    Title = "Цвет ESP",
+    Title = "Цвет ESP игроков",
     Default = Color3.fromRGB(255, 0, 0),
     Callback = function(color)
         espColor = color
@@ -988,26 +973,88 @@ Tabs.EspPlayers:AddColorpicker("EspPlayersColor", {
     end
 })
 
+Tabs.EspPlayers:AddSection("🌈 Быстрые цвета")
+
+local playerColorGrid = Tabs.EspPlayers:AddDropdown("EspPlayerPreset", {
+    Title = "Пресет цвета",
+    Values = {
+        "🔴 Красный", "🟠 Оранжевый", "🟡 Жёлтый", "🟢 Зелёный",
+        "🔵 Синий", "🟣 Фиолетовый", "🩷 Розовый", "🩵 Голубой",
+        "🤍 Белый", "🖤 Чёрный", "💛 Золотой", "🧡 Коралл",
+        "💚 Лайм", "💜 Лаванда", "🩶 Серебро", "🏆 Бронза",
+        "🌊 Морской", "🌅 Закат", "🌌 Космос", "💎 Аквамарин",
+        "🔥 Огненный", "❄️ Ледяной", "🌈 Радужный", "🩷 Маджента",
+        "🤎 Коричневый", "💗 Розовый-неон", "🧡 Тыква", "🍀 Клевер",
+        "🌺 Сакура", "💠 Циан", "🌠 Комета", "🟪 Неон-фиолет"
+    },
+    Multi = false,
+    Default = "🔴 Красный",
+    Callback = function(Value)
+        local colorMap = {
+            ["🔴 Красный"] = Color3.fromRGB(255, 0, 0),
+            ["🟠 Оранжевый"] = Color3.fromRGB(255, 130, 0),
+            ["🟡 Жёлтый"] = Color3.fromRGB(255, 255, 0),
+            ["🟢 Зелёный"] = Color3.fromRGB(0, 255, 0),
+            ["🔵 Синий"] = Color3.fromRGB(0, 100, 255),
+            ["🟣 Фиолетовый"] = Color3.fromRGB(180, 0, 255),
+            ["🩷 Розовый"] = Color3.fromRGB(255, 100, 200),
+            ["🩵 Голубой"] = Color3.fromRGB(0, 200, 255),
+            ["🤍 Белый"] = Color3.fromRGB(255, 255, 255),
+            ["🖤 Чёрный"] = Color3.fromRGB(20, 20, 20),
+            ["💛 Золотой"] = Color3.fromRGB(255, 215, 0),
+            ["🧡 Коралл"] = Color3.fromRGB(255, 100, 80),
+            ["💚 Лайм"] = Color3.fromRGB(150, 255, 0),
+            ["💜 Лаванда"] = Color3.fromRGB(180, 150, 255),
+            ["🩶 Серебро"] = Color3.fromRGB(192, 192, 192),
+            ["🏆 Бронза"] = Color3.fromRGB(205, 127, 50),
+            ["🌊 Морской"] = Color3.fromRGB(0, 255, 200),
+            ["🌅 Закат"] = Color3.fromRGB(255, 100, 50),
+            ["🌌 Космос"] = Color3.fromRGB(80, 0, 150),
+            ["💎 Аквамарин"] = Color3.fromRGB(100, 255, 220),
+            ["🔥 Огненный"] = Color3.fromRGB(255, 50, 0),
+            ["❄️ Ледяной"] = Color3.fromRGB(180, 230, 255),
+            ["🌈 Радужный"] = Color3.fromRGB(255, 0, 128),
+            ["🩷 Маджента"] = Color3.fromRGB(255, 0, 200),
+            ["🤎 Коричневый"] = Color3.fromRGB(150, 75, 0),
+            ["💗 Розовый-неон"] = Color3.fromRGB(255, 50, 150),
+            ["🧡 Тыква"] = Color3.fromRGB(255, 117, 24),
+            ["🍀 Клевер"] = Color3.fromRGB(50, 205, 50),
+            ["🌺 Сакура"] = Color3.fromRGB(255, 183, 197),
+            ["💠 Циан"] = Color3.fromRGB(0, 255, 255),
+            ["🌠 Комета"] = Color3.fromRGB(135, 206, 250),
+            ["🟪 Неон-фиолет"] = Color3.fromRGB(200, 0, 255),
+        }
+        local color = colorMap[Value]
+        if color then
+            espColor = color
+            for _, esp in ipairs(espObjects) do
+                if esp and esp.Parent then esp.FillColor = color end
+            end
+        end
+    end
+})
+
 Tabs.EspPlayers:AddToggle("EspRainbow", {
-    Title = "🌈 Радужный режим",
+    Title = "🌈 Радужный режим (авто)",
     Default = false,
     Callback = function(state)
         espRainbow = state
     end
 })
 
--- ==================== ESP БОТОВ ====================
-Tabs.EspBots:AddSection("🤖 Управление")
+-- ==================== ESP БОТОВ (ТОЛЬКО С E) ====================
+Tabs.EspBots:AddSection("👁️ Управление")
 
 Tabs.EspBots:AddToggle("BotEspToggle", {
-    Title = "ESP ботов вкл/выкл",
+    Title = "🤖 ESP ботов С КНОПКОЙ E",
+    Description = "Показывает только NPC с ProximityPrompt",
     Default = false,
     Callback = function(state)
         pcall(function()
             botEspEnabled = state
             if state then
                 updateBotEsp()
-                Fluent:Notify({ Title = "🤖 ESP Ботов", Content = "ВКЛ", Duration = 2 })
+                Fluent:Notify({ Title = "🤖 ESP Ботов", Content = "ВКЛ (только с E)", Duration = 2 })
             else
                 clearAllBotEsp()
                 Fluent:Notify({ Title = "🤖 ESP Ботов", Content = "ВЫКЛ", Duration = 2 })
@@ -1019,44 +1066,20 @@ Tabs.EspBots:AddToggle("BotEspToggle", {
 Tabs.EspBots:AddSection("⚙️ Настройки")
 
 Tabs.EspBots:AddSlider("BotEspRadius", {
-    Title = "📏 Радиус",
+    Title = "📏 Радиус поиска",
     Default = 300,
     Min = 50,
-    Max = 2000,
+    Max = 1000,
     Rounding = 50,
     Callback = function(Value)
         botEspRadius = Value
     end
 })
 
-Tabs.EspBots:AddSection("🎯 Фильтр")
-
-Tabs.EspBots:AddDropdown("BotEspFilter", {
-    Title = "Фильтр ботов",
-    Values = {"📦 Все боты", "🔵 С кнопкой E", "⚪ Без кнопки E"},
-    Default = "📦 Все боты",
-    Multi = false,
-    Callback = function(Value)
-        pcall(function()
-            if Value == "📦 Все боты" then botEspFilter = "all"
-            elseif Value == "🔵 С кнопкой E" then botEspFilter = "withE"
-            elseif Value == "⚪ Без кнопки E" then botEspFilter = "noE" end
-            
-            clearAllBotEsp()
-            
-            if botEspEnabled then 
-                updateBotEsp() 
-            end
-            
-            Fluent:Notify({ Title = "🎯 Фильтр", Content = Value, Duration = 2 })
-        end)
-    end
-})
-
-Tabs.EspBots:AddSection("🎨 Цвет")
+Tabs.EspBots:AddSection("🎨 Цвет ESP Ботов")
 
 Tabs.EspBots:AddColorpicker("BotEspColor", {
-    Title = "Цвет ESP ботов",
+    Title = "Свой цвет",
     Default = Color3.fromRGB(0, 255, 100),
     Callback = function(color)
         botEspColor = color
@@ -1066,7 +1089,76 @@ Tabs.EspBots:AddColorpicker("BotEspColor", {
     end
 })
 
-Tabs.EspBots:AddSection("🎯 Боты рядом (ТП)")
+Tabs.EspBots:AddSection("🌈 Быстрые цвета")
+
+Tabs.EspBots:AddDropdown("BotEspPreset", {
+    Title = "Пресет цвета",
+    Values = {
+        "🟢 Зелёный", "🔴 Красный", "🔵 Синий", "🟡 Жёлтый",
+        "🟣 Фиолетовый", "🟠 Оранжевый", "🩷 Розовый", "🩵 Голубой",
+        "🤍 Белый", "🖤 Чёрный", "💛 Золотой", "💚 Лайм",
+        "🧡 Коралл", "💜 Лаванда", "🩶 Серебро", "🏆 Бронза",
+        "🌊 Морской", "🌅 Закат", "🌌 Космос", "💎 Аквамарин",
+        "🔥 Огненный", "❄️ Ледяной", "🌈 Радужный", "🩷 Маджента",
+        "🤎 Коричневый", "💗 Розовый-неон", "🧡 Тыква", "🍀 Клевер",
+        "🌺 Сакура", "💠 Циан", "🌠 Комета", "🟪 Неон-фиолет"
+    },
+    Multi = false,
+    Default = "🟢 Зелёный",
+    Callback = function(Value)
+        local colorMap = {
+            ["🟢 Зелёный"] = Color3.fromRGB(0, 255, 100),
+            ["🔴 Красный"] = Color3.fromRGB(255, 0, 0),
+            ["🔵 Синий"] = Color3.fromRGB(0, 100, 255),
+            ["🟡 Жёлтый"] = Color3.fromRGB(255, 255, 0),
+            ["🟣 Фиолетовый"] = Color3.fromRGB(180, 0, 255),
+            ["🟠 Оранжевый"] = Color3.fromRGB(255, 130, 0),
+            ["🩷 Розовый"] = Color3.fromRGB(255, 100, 200),
+            ["🩵 Голубой"] = Color3.fromRGB(0, 200, 255),
+            ["🤍 Белый"] = Color3.fromRGB(255, 255, 255),
+            ["🖤 Чёрный"] = Color3.fromRGB(20, 20, 20),
+            ["💛 Золотой"] = Color3.fromRGB(255, 215, 0),
+            ["💚 Лайм"] = Color3.fromRGB(150, 255, 0),
+            ["🧡 Коралл"] = Color3.fromRGB(255, 100, 80),
+            ["💜 Лаванда"] = Color3.fromRGB(180, 150, 255),
+            ["🩶 Серебро"] = Color3.fromRGB(192, 192, 192),
+            ["🏆 Бронза"] = Color3.fromRGB(205, 127, 50),
+            ["🌊 Морской"] = Color3.fromRGB(0, 255, 200),
+            ["🌅 Закат"] = Color3.fromRGB(255, 100, 50),
+            ["🌌 Космос"] = Color3.fromRGB(80, 0, 150),
+            ["💎 Аквамарин"] = Color3.fromRGB(100, 255, 220),
+            ["🔥 Огненный"] = Color3.fromRGB(255, 50, 0),
+            ["❄️ Ледяной"] = Color3.fromRGB(180, 230, 255),
+            ["🌈 Радужный"] = Color3.fromRGB(255, 0, 128),
+            ["🩷 Маджента"] = Color3.fromRGB(255, 0, 200),
+            ["🤎 Коричневый"] = Color3.fromRGB(150, 75, 0),
+            ["💗 Розовый-неон"] = Color3.fromRGB(255, 50, 150),
+            ["🧡 Тыква"] = Color3.fromRGB(255, 117, 24),
+            ["🍀 Клевер"] = Color3.fromRGB(50, 205, 50),
+            ["🌺 Сакура"] = Color3.fromRGB(255, 183, 197),
+            ["💠 Циан"] = Color3.fromRGB(0, 255, 255),
+            ["🌠 Комета"] = Color3.fromRGB(135, 206, 250),
+            ["🟪 Неон-фиолет"] = Color3.fromRGB(200, 0, 255),
+        }
+        local color = colorMap[Value]
+        if color then
+            botEspColor = color
+            for _, hl in pairs(botEspObjects) do
+                if hl and hl.Parent then hl.FillColor = color end
+            end
+        end
+    end
+})
+
+Tabs.EspBots:AddToggle("BotEspRainbow", {
+    Title = "🌈 Радужный режим (авто)",
+    Default = false,
+    Callback = function(state)
+        botEspRainbow = state
+    end
+})
+
+Tabs.EspBots:AddSection("🎯 Боты с E рядом (ТП)")
 
 local botTpDropdown = Tabs.EspBots:AddDropdown("BotTpList", {
     Title = "Выбери бота для ТП",
@@ -1097,18 +1189,18 @@ local function refreshBotTpList()
             if i > 30 then break end
             table.insert(list, entry.model.Name)
         end
-        if #list == 0 then list = {"Нет ботов"} end
+        if #list == 0 then list = {"Нет ботов с E"} end
         botTpDropdown:SetValues(list)
     end)
 end
 
 Tabs.EspBots:AddButton({
-    Title = "🔄 Обновить список ботов",
+    Title = "🔄 Обновить список ботов с E",
     Callback = function()
         pcall(function()
             updateBotEsp()
             refreshBotTpList()
-            Fluent:Notify({ Title = "🔄 Обновлено", Content = "Ботов: " .. #botEspList, Duration = 2 })
+            Fluent:Notify({ Title = "🔄 Обновлено", Content = "Ботов с E: " .. #botEspList, Duration = 2 })
         end)
     end
 })
@@ -1369,7 +1461,7 @@ runService.RenderStepped:Connect(function()
         end
     end
 
-    -- Радуга ESP
+    -- Радуга ESP игроков
     if espRainbow then
         local c = Color3.fromHSV((tick() % 1), 1, 1)
         for _, esp in ipairs(espObjects) do
@@ -1381,7 +1473,7 @@ end)
 -- ESP БОТОВ ЦИКЛ
 task.spawn(function()
     while true do
-        task.wait(0.3)
+        task.wait(0.5)
         if botEspEnabled then
             pcall(updateBotEsp)
             pcall(refreshBotTpList)
@@ -1488,12 +1580,13 @@ end)
 
 -- ==================== УВЕДОМЛЕНИЕ ====================
 Fluent:Notify({
-    Title = "⚡ KSAS ULTIMATE v6.1",
+    Title = "⚡ KSAS ULTIMATE v6.3",
     Content = "Загружено! RightControl = свернуть",
     Duration = 5
 })
 
-print("✅ KSAS ULTIMATE v6.1 загружен!")
+print("✅ KSAS ULTIMATE v6.3 загружен!")
 print("🔥 Fluent UI + все функции")
-print("✅ Фильтр ботов E/без E работает")
+print("👁️ ESP Ботов — ТОЛЬКО С E")
+print("🎨 32 цвета для ESP игроков и ботов")
 print("⌨️ RightControl = свернуть")
