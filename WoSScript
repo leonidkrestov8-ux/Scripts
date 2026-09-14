@@ -1,6 +1,6 @@
 -- =====================================================================
--- KSAS ULTIMATE v4.3
--- 🤖 ESP Ботов (без E, ТП к ботам) | 📦 Сундуки (ФИКС) 
+-- KSAS ULTIMATE v4.4 (ФИНАЛ)
+-- 🤖 ESP Ботов с фильтром E/без E + ТП | 📦 Сундуки (ФИКС)
 -- =====================================================================
 
 local player = game.Players.LocalPlayer
@@ -32,7 +32,6 @@ local autoButtonDelay = 0.08
 local cycleDelay = 0.5
 local clickInterval = 1.0
 
--- Сундуки (ФИКС)
 local farming = false
 local savedChestName = nil
 local savedHoldDuration = 0
@@ -53,12 +52,12 @@ local shieldTargets = "all"
 local espEnabled = false
 local espObjects = {}
 
--- ESP Ботов (упрощённый)
 local botEspEnabled = false
 local botEspRadius = 300
+local botEspFilter = "all"
 local botEspColor = Color3.fromRGB(0, 255, 100)
 local botEspObjects = {}
-local botEspList = {} -- для ТП
+local botEspList = {}
 
 local savedPositions = {[1] = nil, [2] = nil}
 
@@ -121,6 +120,24 @@ local function isPlayerCharacter(model)
     return false
 end
 
+local function botHasE(botModel)
+    for _, obj in ipairs(botModel:GetDescendants()) do
+        if obj:IsA("ProximityPrompt") then
+            if obj.Enabled and obj.MaxActivationDistance > 0 then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+local function botMatchesFilter(botModel)
+    if botEspFilter == "all" then return true
+    elseif botEspFilter == "withE" then return botHasE(botModel)
+    elseif botEspFilter == "noE" then return not botHasE(botModel) end
+    return false
+end
+
 local function addBotEsp(botModel)
     if botEspObjects[botModel] then return end
     local hl = Instance.new("Highlight")
@@ -169,7 +186,7 @@ local function updateBotEsp()
                     or obj:FindFirstChild("UpperTorso")
                 if botRoot then
                     local dist = (myPos - botRoot.Position).Magnitude
-                    if dist <= botEspRadius then
+                    if dist <= botEspRadius and botMatchesFilter(obj) then
                         seenBots[obj] = true
                         table.insert(botEspList, {model = obj, root = botRoot, distance = dist})
                         if not botEspObjects[obj] then
@@ -183,7 +200,6 @@ local function updateBotEsp()
         end
     end
     
-    -- Сортируем по дистанции (ближние первыми)
     table.sort(botEspList, function(a, b) return a.distance < b.distance end)
     
     for model, hl in pairs(botEspObjects) do
@@ -193,16 +209,14 @@ local function updateBotEsp()
     end
 end
 
--- ==================== СУНДУКИ (ФИКС) ====================
+-- ==================== СУНДУКИ ====================
 local function scanChests()
-    -- Сначала ищем ближайший ProximityPrompt чтобы узнать имя
     local char = player.Character
-    if not char then return false end
+    if not char then return false, "Нет персонажа" end
     local myRoot = char:FindFirstChild("HumanoidRootPart")
-    if not myRoot then return false end
+    if not myRoot then return false, "Нет RootPart" end
     
     local nearestPrompt, nearestDist = nil, math.huge
-    -- Ищем через workspace:GetDescendants
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj:IsA("ProximityPrompt") then
             local parent = obj.Parent
@@ -223,16 +237,13 @@ local function scanChests()
         return false, "Не нашёл сундук рядом"
     end
     
-    -- Сохраняем имя и HoldDuration
     savedChestName = nearestPrompt.Parent.Name
     savedHoldDuration = nearestPrompt.HoldDuration or 0
     
-    -- Ищем ВСЕ сундуки с таким же именем
     chestsList = {}
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj:IsA("ProximityPrompt") and obj.Parent and obj.Parent.Name == savedChestName then
             local parentHold = obj.HoldDuration or 0
-            -- Проверяем тип зажима
             local sameType = false
             if savedHoldDuration > 0 and parentHold > 0 then sameType = true
             elseif savedHoldDuration == 0 and parentHold == 0 then sameType = true end
@@ -255,7 +266,6 @@ local function scanChests()
     return true, savedChestName .. " | " .. #chestsList .. " шт."
 end
 
--- Цикл сбора сундуков
 task.spawn(function()
     while true do
         task.wait(0.1)
@@ -266,7 +276,6 @@ task.spawn(function()
             local myRoot = char:FindFirstChild("HumanoidRootPart")
             if not myRoot then continue end
             
-            -- Проверяем текущий сундук
             if currentChestIndex > #chestsList then
                 currentChestIndex = 1
             end
@@ -287,15 +296,12 @@ task.spawn(function()
                 continue
             end
             
-            -- Телепорт к сундуку
             myRoot.CFrame = CFrame.new(chestPart.Position + Vector3.new(0, 3, 0))
             task.wait(0.2)
             
-            -- Зажим E
             local key = prompt.KeyboardKeyCode or Enum.KeyCode.E
             
             if holdDur > 0 then
-                -- ЗАЖИМНОЙ
                 vim:SendKeyEvent(true, key, false, game)
                 local waitTime = math.max(holdDur + 0.3, 2.5)
                 for j = 1, math.ceil(waitTime * 10) do
@@ -305,14 +311,12 @@ task.spawn(function()
                 end
                 vim:SendKeyEvent(false, key, false, game)
             else
-                -- КЛИК
                 vim:SendKeyEvent(true, key, false, game)
                 task.wait(0.1)
                 vim:SendKeyEvent(false, key, false, game)
                 task.wait(0.5)
             end
             
-            -- Следующий
             currentChestIndex = currentChestIndex + 1
         end
     end
@@ -480,7 +484,7 @@ local title = Instance.new("TextLabel")
 title.Size = UDim2.new(0.7, 0, 1, 0)
 title.Position = UDim2.new(0, 15, 0, 0)
 title.BackgroundTransparency = 1
-title.Text = "⚡ KSAS ULTIMATE v4.3"
+title.Text = "⚡ KSAS ULTIMATE v4.4"
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.TextSize = 16
 title.Font = Enum.Font.GothamBold
@@ -1051,13 +1055,13 @@ local chestStartBtn = createButton(ChestTab, "▶️ СТАРТ СБОРА", fun
     end
 end)
 
-createSection(ChestTab, "ℹ️ Информация")
+createSection(ChestTab, "ℹ️ Как использовать")
 local chestHelp = Instance.new("TextLabel")
 chestHelp.Size = UDim2.new(1, -10, 0, 80)
 chestHelp.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
 chestHelp.BackgroundTransparency = 0.3
 chestHelp.BorderSizePixel = 0
-chestHelp.Text = "1️⃣ Подойди к сундуку\n2️⃣ Нажми СКАН (запомнит тип)\n3️⃣ Нажми СТАРТ СБОРА\n\n⚙️ Автоматически:\n• Телепорт к сундукам\n• Зажим E (если нужно)\n• По кругу"
+chestHelp.Text = "1️⃣ Подойди к сундуку (ближе 15 ст.)\n2️⃣ Нажми СКАН\n3️⃣ Нажми СТАРТ СБОРА\n\n⚙️ Автоматически телепортирует\nко всем таким сундукам и открывает"
 chestHelp.TextColor3 = Color3.fromRGB(200, 220, 255)
 chestHelp.TextSize = 11
 chestHelp.Font = Enum.Font.Gotham
@@ -1334,7 +1338,7 @@ createToggle(EspTab, "🌈 Радужный режим", false, function(state)
     rainbowMode = state
 end)
 
--- ==================== 🤖 ESP БОТОВ (БЕЗ E) ====================
+-- ==================== 🤖 ESP БОТОВ ====================
 local BotEspTab = createTab("🤖 ESP Ботов")
 
 createSection(BotEspTab, "Управление")
@@ -1342,14 +1346,14 @@ createSection(BotEspTab, "Управление")
 createToggle(BotEspTab, "🤖 ESP ботов вкл/выкл", false, function(state)
     botEspEnabled = state
     if state then
-        print("🤖 ESP ботов ВКЛ | Радиус: " .. botEspRadius)
+        print("🤖 ESP ботов ВКЛ | Радиус: " .. botEspRadius .. " | Фильтр: " .. botEspFilter)
+        updateBotEsp()
     else
         clearAllBotEsp()
         print("🤖 ESP ботов ВЫКЛ")
     end
 end)
 
--- Радиус
 local radiusRow = Instance.new("Frame")
 radiusRow.Size = UDim2.new(1, -10, 0, 55)
 radiusRow.BackgroundTransparency = 1
@@ -1399,6 +1403,61 @@ for _, r in ipairs({100, 200, 300, 500, 1000}) do
         rbtn.BackgroundColor3 = MENU_COLOR
     end)
 end
+
+-- ФИЛЬТР
+createSection(BotEspTab, "🎯 Фильтр ботов")
+
+local filterRow = Instance.new("Frame")
+filterRow.Size = UDim2.new(1, -10, 0, 32)
+filterRow.BackgroundTransparency = 1
+filterRow.Parent = BotEspTab
+
+local filterLayout = Instance.new("UIListLayout")
+filterLayout.FillDirection = Enum.FillDirection.Horizontal
+filterLayout.Padding = UDim.new(0, 4)
+filterLayout.Parent = filterRow
+
+local filterInfo = Instance.new("TextLabel")
+filterInfo.Size = UDim2.new(1, -10, 0, 18)
+filterInfo.BackgroundTransparency = 1
+filterInfo.Text = "📦 Текущий фильтр: Все боты"
+filterInfo.TextColor3 = Color3.fromRGB(150, 200, 255)
+filterInfo.TextSize = 10
+filterInfo.Font = Enum.Font.Gotham
+filterInfo.TextXAlignment = Enum.TextXAlignment.Left
+filterInfo.Parent = BotEspTab
+
+local function createFilterBtn(text, value, label)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 105, 0, 30)
+    btn.BackgroundColor3 = (value == "all") and MENU_COLOR or Color3.fromRGB(40, 40, 60)
+    btn.BackgroundTransparency = 0.3
+    btn.BorderSizePixel = 0
+    btn.Text = text
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.TextSize = 11
+    btn.Font = Enum.Font.GothamBold
+    btn.Parent = filterRow
+    local fc = Instance.new("UICorner")
+    fc.CornerRadius = UDim.new(0, 6)
+    fc.Parent = btn
+    btn.MouseButton1Click:Connect(function()
+        botEspFilter = value
+        for _, b in ipairs(filterRow:GetChildren()) do
+            if b:IsA("TextButton") then b.BackgroundColor3 = Color3.fromRGB(40, 40, 60) end
+        end
+        btn.BackgroundColor3 = MENU_COLOR
+        filterInfo.Text = "📦 Текущий фильтр: " .. label
+        clearAllBotEsp()
+        if botEspEnabled then updateBotEsp() end
+        print("🎯 Фильтр: " .. label)
+    end)
+    return btn
+end
+
+createFilterBtn("📦 Все боты", "all", "Все боты")
+createFilterBtn("🔵 С кнопкой E", "withE", "С кнопкой E")
+createFilterBtn("⚪ Без кнопки E", "noE", "Без кнопки E")
 
 createSection(BotEspTab, "🎨 Цвет ESP")
 
@@ -1485,7 +1544,7 @@ end)
 
 local function updateBotTpList()
     for _, c in ipairs(botTpList:GetChildren()) do
-        if c:IsA("TextButton") then c:Destroy() end
+        if c:IsA("TextButton") or c:IsA("TextLabel") then c:Destroy() end
     end
     
     if #botEspList == 0 then
@@ -1497,34 +1556,32 @@ local function updateBotTpList()
         empty.TextSize = 11
         empty.Font = Enum.Font.Gotham
         empty.Parent = botTpList
-        return
-    end
-    
-    for i, entry in ipairs(botEspList) do
-        if i > 30 then break end -- максимум 30 ботов
-        
-        local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(1, 0, 0, 30)
-        btn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-        btn.BackgroundTransparency = 0.3
-        btn.BorderSizePixel = 0
-        btn.Text = "  " .. entry.model.Name .. " | " .. math.floor(entry.distance) .. " ст."
-        btn.TextColor3 = Color3.fromRGB(220, 220, 255)
-        btn.TextSize = 11
-        btn.Font = Enum.Font.Gotham
-        btn.TextXAlignment = Enum.TextXAlignment.Left
-        btn.Parent = botTpList
-        local c = Instance.new("UICorner")
-        c.CornerRadius = UDim.new(0, 6)
-        c.Parent = btn
-        btn.MouseButton1Click:Connect(function()
-            -- Телепорт к боту
-            local myRoot = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-            if myRoot and entry.root and entry.root.Parent then
-                myRoot.CFrame = CFrame.new(entry.root.Position + Vector3.new(0, 3, 0))
-                print("🎯 ТП к: " .. entry.model.Name)
-            end
-        end)
+    else
+        for i, entry in ipairs(botEspList) do
+            if i > 30 then break end
+            
+            local btn = Instance.new("TextButton")
+            btn.Size = UDim2.new(1, 0, 0, 30)
+            btn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+            btn.BackgroundTransparency = 0.3
+            btn.BorderSizePixel = 0
+            btn.Text = "  " .. entry.model.Name .. " | " .. math.floor(entry.distance) .. " ст."
+            btn.TextColor3 = Color3.fromRGB(220, 220, 255)
+            btn.TextSize = 11
+            btn.Font = Enum.Font.Gotham
+            btn.TextXAlignment = Enum.TextXAlignment.Left
+            btn.Parent = botTpList
+            local c = Instance.new("UICorner")
+            c.CornerRadius = UDim.new(0, 6)
+            c.Parent = btn
+            btn.MouseButton1Click:Connect(function()
+                local myRoot = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                if myRoot and entry.root and entry.root.Parent then
+                    myRoot.CFrame = CFrame.new(entry.root.Position + Vector3.new(0, 3, 0))
+                    print("🎯 ТП к: " .. entry.model.Name)
+                end
+            end)
+        end
     end
     
     task.wait()
@@ -1539,11 +1596,11 @@ end)
 
 createSection(BotEspTab, "ℹ️ Информация")
 local botInfoLabel = Instance.new("TextLabel")
-botInfoLabel.Size = UDim2.new(1, -10, 0, 50)
+botInfoLabel.Size = UDim2.new(1, -10, 0, 70)
 botInfoLabel.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
 botInfoLabel.BackgroundTransparency = 0.3
 botInfoLabel.BorderSizePixel = 0
-botInfoLabel.Text = "🤖 Показывает всех ботов в радиусе\n🎯 Нажми на бота в списке → ТП к нему\n⚠️ Обновление раз в 0.3 сек"
+botInfoLabel.Text = "📦 Все боты — все NPC\n🔵 С кнопкой E — только с ProximityPrompt (торговцы, квестодатели)\n⚪ Без кнопки E — обычные боты (мобы, враги)\n\n🎯 Клик по боту в списке → ТП к нему"
 botInfoLabel.TextColor3 = Color3.fromRGB(200, 220, 255)
 botInfoLabel.TextSize = 11
 botInfoLabel.Font = Enum.Font.Gotham
@@ -2205,6 +2262,7 @@ task.spawn(function()
         task.wait(0.3)
         if botEspEnabled then
             updateBotEsp()
+            updateBotTpList()
         end
     end
 end)
@@ -2236,8 +2294,7 @@ runService.Heartbeat:Connect(function()
                         if hum and hum.Health > 0 then
                             local root = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("Torso")
                             if root then
-                                local dist = (myRoot.Position - root.Position).Magnitude
-                                if dist < SHIELD_RADIUS then
+                                local dist = (myRoot.Position - root.Position).Magnitude                                if dist < SHIELD_RADIUS then
                                     local direction = (myRoot.Position - root.Position).Unit
                                     local newPos = root.Position + (direction * SHIELD_RADIUS)
                                     myRoot.CFrame = CFrame.new(Vector3.new(newPos.X, myRoot.Position.Y, newPos.Z))
@@ -2305,7 +2362,7 @@ uis.InputBegan:Connect(function(input, gpe)
     end
 end)
 
-print("✅ KSAS ULTIMATE v4.3 загружен!")
-print("🤖 ESP Ботов: радиус + список для ТП")
-print("📦 Сундуки: ФИКС (нормальный скан + сбор)")
+print("✅ KSAS ULTIMATE v4.4 загружен!")
+print("🤖 ESP Ботов с фильтром (Все / С E / Без E) + ТП")
+print("📦 Сундуки: ФИКС")
 print("⌨️ 2-5 = метки | Z = PvP | − = свернуть | ✕ = закрыть")
