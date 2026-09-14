@@ -1,8 +1,6 @@
 -- =====================================================================
--- KSAS ULTIMATE v4.0 (ФИНАЛ)
--- 🎯 PvP | 🎨 Цвет | 🛡️ Щит | ESP | Котенок | Сундуки | 📦 Модули
--- 🤖 Котенок-Бот + Авто-кнопки (ЛКМ×3, M2, R, G, C, X, V)
--- 💾 Модули сохраняются на ПК и загружаются автоматически
+-- KSAS ULTIMATE v4.3
+-- 🤖 ESP Ботов (без E, ТП к ботам) | 📦 Сундуки (ФИКС) 
 -- =====================================================================
 
 local player = game.Players.LocalPlayer
@@ -34,9 +32,12 @@ local autoButtonDelay = 0.08
 local cycleDelay = 0.5
 local clickInterval = 1.0
 
+-- Сундуки (ФИКС)
 local farming = false
 local savedChestName = nil
 local savedHoldDuration = 0
+local chestsList = {}
+local currentChestIndex = 1
 
 local speedEnabled = false
 local speedValue = 100
@@ -51,6 +52,13 @@ local shieldTargets = "all"
 
 local espEnabled = false
 local espObjects = {}
+
+-- ESP Ботов (упрощённый)
+local botEspEnabled = false
+local botEspRadius = 300
+local botEspColor = Color3.fromRGB(0, 255, 100)
+local botEspObjects = {}
+local botEspList = {} -- для ТП
 
 local savedPositions = {[1] = nil, [2] = nil}
 
@@ -105,15 +113,218 @@ local function findNearestBotWithName(name)
     return nearest
 end
 
+-- ==================== ESP БОТОВ ====================
+local function isPlayerCharacter(model)
+    for _, p in ipairs(game.Players:GetPlayers()) do
+        if p.Character == model then return true end
+    end
+    return false
+end
+
+local function addBotEsp(botModel)
+    if botEspObjects[botModel] then return end
+    local hl = Instance.new("Highlight")
+    hl.Name = "XenoBotESP"
+    hl.Adornee = botModel
+    hl.FillColor = botEspColor
+    hl.FillTransparency = 0.4
+    hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+    hl.OutlineTransparency = 0
+    hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    hl.Parent = botModel
+    botEspObjects[botModel] = hl
+end
+
+local function removeBotEsp(botModel)
+    if botEspObjects[botModel] then
+        if botEspObjects[botModel].Parent then
+            botEspObjects[botModel]:Destroy()
+        end
+        botEspObjects[botModel] = nil
+    end
+end
+
+local function clearAllBotEsp()
+    for model, hl in pairs(botEspObjects) do
+        if hl and hl.Parent then hl:Destroy() end
+    end
+    botEspObjects = {}
+    botEspList = {}
+end
+
+local function updateBotEsp()
+    if not botEspEnabled then return end
+    local myRoot = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+    if not myRoot then return end
+    local myPos = myRoot.Position
+    local seenBots = {}
+    botEspList = {}
+    
+    for _, obj in ipairs(workspace:GetChildren()) do
+        if obj:IsA("Model") and obj ~= player.Character and not isPlayerCharacter(obj) then
+            local hum = obj:FindFirstChild("Humanoid")
+            if hum and hum.Health > 0 then
+                local botRoot = obj:FindFirstChild("HumanoidRootPart") 
+                    or obj:FindFirstChild("Torso") 
+                    or obj:FindFirstChild("UpperTorso")
+                if botRoot then
+                    local dist = (myPos - botRoot.Position).Magnitude
+                    if dist <= botEspRadius then
+                        seenBots[obj] = true
+                        table.insert(botEspList, {model = obj, root = botRoot, distance = dist})
+                        if not botEspObjects[obj] then
+                            addBotEsp(obj)
+                        else
+                            botEspObjects[obj].FillColor = botEspColor
+                        end
+                    end
+                end
+            end
+        end
+    end
+    
+    -- Сортируем по дистанции (ближние первыми)
+    table.sort(botEspList, function(a, b) return a.distance < b.distance end)
+    
+    for model, hl in pairs(botEspObjects) do
+        if not seenBots[model] or not model.Parent then
+            removeBotEsp(model)
+        end
+    end
+end
+
+-- ==================== СУНДУКИ (ФИКС) ====================
+local function scanChests()
+    -- Сначала ищем ближайший ProximityPrompt чтобы узнать имя
+    local char = player.Character
+    if not char then return false end
+    local myRoot = char:FindFirstChild("HumanoidRootPart")
+    if not myRoot then return false end
+    
+    local nearestPrompt, nearestDist = nil, math.huge
+    -- Ищем через workspace:GetDescendants
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("ProximityPrompt") then
+            local parent = obj.Parent
+            if parent then
+                local rootPart = parent:IsA("BasePart") and parent or parent:FindFirstChildWhichIsA("BasePart")
+                if rootPart then
+                    local d = (myRoot.Position - rootPart.Position).Magnitude
+                    if d < nearestDist and d < 15 then
+                        nearestDist = d
+                        nearestPrompt = obj
+                    end
+                end
+            end
+        end
+    end
+    
+    if not nearestPrompt then
+        return false, "Не нашёл сундук рядом"
+    end
+    
+    -- Сохраняем имя и HoldDuration
+    savedChestName = nearestPrompt.Parent.Name
+    savedHoldDuration = nearestPrompt.HoldDuration or 0
+    
+    -- Ищем ВСЕ сундуки с таким же именем
+    chestsList = {}
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("ProximityPrompt") and obj.Parent and obj.Parent.Name == savedChestName then
+            local parentHold = obj.HoldDuration or 0
+            -- Проверяем тип зажима
+            local sameType = false
+            if savedHoldDuration > 0 and parentHold > 0 then sameType = true
+            elseif savedHoldDuration == 0 and parentHold == 0 then sameType = true end
+            
+            if sameType then
+                local parent = obj.Parent
+                local rootPart = parent:IsA("BasePart") and parent or parent:FindFirstChildWhichIsA("BasePart")
+                if rootPart then
+                    table.insert(chestsList, {
+                        part = rootPart,
+                        prompt = obj,
+                        holdDuration = parentHold
+                    })
+                end
+            end
+        end
+    end
+    
+    currentChestIndex = 1
+    return true, savedChestName .. " | " .. #chestsList .. " шт."
+end
+
+-- Цикл сбора сундуков
+task.spawn(function()
+    while true do
+        task.wait(0.1)
+        
+        if farming and #chestsList > 0 then
+            local char = player.Character
+            if not char then continue end
+            local myRoot = char:FindFirstChild("HumanoidRootPart")
+            if not myRoot then continue end
+            
+            -- Проверяем текущий сундук
+            if currentChestIndex > #chestsList then
+                currentChestIndex = 1
+            end
+            
+            local entry = chestsList[currentChestIndex]
+            if not entry or not entry.part or not entry.part.Parent then
+                table.remove(chestsList, currentChestIndex)
+                if currentChestIndex > #chestsList then currentChestIndex = 1 end
+                continue
+            end
+            
+            local chestPart = entry.part
+            local prompt = entry.prompt
+            local holdDur = entry.holdDuration
+            
+            if not prompt or not prompt.Parent then
+                table.remove(chestsList, currentChestIndex)
+                continue
+            end
+            
+            -- Телепорт к сундуку
+            myRoot.CFrame = CFrame.new(chestPart.Position + Vector3.new(0, 3, 0))
+            task.wait(0.2)
+            
+            -- Зажим E
+            local key = prompt.KeyboardKeyCode or Enum.KeyCode.E
+            
+            if holdDur > 0 then
+                -- ЗАЖИМНОЙ
+                vim:SendKeyEvent(true, key, false, game)
+                local waitTime = math.max(holdDur + 0.3, 2.5)
+                for j = 1, math.ceil(waitTime * 10) do
+                    if not farming then break end
+                    task.wait(0.1)
+                    if not chestPart or not chestPart.Parent then break end
+                end
+                vim:SendKeyEvent(false, key, false, game)
+            else
+                -- КЛИК
+                vim:SendKeyEvent(true, key, false, game)
+                task.wait(0.1)
+                vim:SendKeyEvent(false, key, false, game)
+                task.wait(0.5)
+            end
+            
+            -- Следующий
+            currentChestIndex = currentChestIndex + 1
+        end
+    end
+end)
+
 -- ==================== АВТО-КНОПКИ ====================
 local function pressMouseButton1()
     for i = 1, 3 do
         vim:SendMouseButtonEvent(500, 300, 0, true, game, 1)
         task.wait(0.05)
         vim:SendMouseButtonEvent(500, 300, 0, false, game, 1)
-        if i < 3 then
-            task.wait(clickInterval)
-        end
+        if i < 3 then task.wait(clickInterval) end
     end
 end
 
@@ -136,9 +347,7 @@ task.spawn(function()
             local valid = false
             if botTarget and botTarget.Parent then
                 local hum = botTarget:FindFirstChild("Humanoid")
-                if hum and hum.Health > 0 then
-                    valid = true
-                end
+                if hum and hum.Health > 0 then valid = true end
             end
             if valid then
                 pressMouseButton1()
@@ -182,12 +391,14 @@ local function getPvpTargetChar()
     return nil
 end
 
-local function doPvpTeleport()
+local function doPvpTeleport(targetChar)
     if pvpCooldown then return end
     pvpCooldown = true
     task.delay(0.5, function() pvpCooldown = false end)
 
-    local targetChar = getPvpTargetChar()
+    if not targetChar then
+        targetChar = getPvpTargetChar()
+    end
     if not targetChar then return end
 
     local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
@@ -198,8 +409,7 @@ local function doPvpTeleport()
     local char = player.Character
     if not char then return end
     local myRoot = char:FindFirstChild("HumanoidRootPart")
-    local myHum = char:FindFirstChild("Humanoid")
-    if not myRoot or not myHum then return end
+    if not myRoot then return end
 
     local look = targetRoot.CFrame.LookVector
     if look.Magnitude < 0.1 then
@@ -225,9 +435,7 @@ local function doPvpTeleport()
         task.delay(0.3, function()
             local currentChar = player.Character
             local hum = currentChar and currentChar:FindFirstChild("Humanoid")
-            if cam and hum then 
-                cam.CameraSubject = hum 
-            end
+            if cam and hum then cam.CameraSubject = hum end
         end)
     end
 end
@@ -272,7 +480,7 @@ local title = Instance.new("TextLabel")
 title.Size = UDim2.new(0.7, 0, 1, 0)
 title.Position = UDim2.new(0, 15, 0, 0)
 title.BackgroundTransparency = 1
-title.Text = "⚡ KSAS ULTIMATE v4.0"
+title.Text = "⚡ KSAS ULTIMATE v4.3"
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.TextSize = 16
 title.Font = Enum.Font.GothamBold
@@ -669,7 +877,6 @@ createToggle(BotTab, "⌨️ Авто-кнопки (ЛКМ×3 + M2 + R+G+C+X+V)"
     autoButtonsEnabled = state
 end)
 
--- Пауза между ЛКМ
 local clickRow = Instance.new("Frame")
 clickRow.Size = UDim2.new(1, -10, 0, 55)
 clickRow.BackgroundTransparency = 1
@@ -717,57 +924,6 @@ for _, ci in ipairs({0.3, 0.5, 1.0, 1.5, 2.0}) do
             if b:IsA("TextButton") then b.BackgroundColor3 = Color3.fromRGB(40, 40, 60) end
         end
         cbtn.BackgroundColor3 = MENU_COLOR
-    end)
-end
-
--- Задержка цикла
-local delayRow = Instance.new("Frame")
-delayRow.Size = UDim2.new(1, -10, 0, 55)
-delayRow.BackgroundTransparency = 1
-delayRow.Parent = BotTab
-
-local delayLabel = Instance.new("TextLabel")
-delayLabel.Size = UDim2.new(1, 0, 0, 20)
-delayLabel.BackgroundTransparency = 1
-delayLabel.Text = "⏱️ Задержка между циклами: 0.5с"
-delayLabel.TextColor3 = Color3.fromRGB(150, 200, 255)
-delayLabel.TextSize = 11
-delayLabel.Font = Enum.Font.Gotham
-delayLabel.TextXAlignment = Enum.TextXAlignment.Left
-delayLabel.Parent = delayRow
-
-local delayBtnsRow = Instance.new("Frame")
-delayBtnsRow.Size = UDim2.new(1, 0, 0, 30)
-delayBtnsRow.Position = UDim2.new(0, 0, 0, 22)
-delayBtnsRow.BackgroundTransparency = 1
-delayBtnsRow.Parent = delayRow
-
-local delayBtnsLayout = Instance.new("UIListLayout")
-delayBtnsLayout.FillDirection = Enum.FillDirection.Horizontal
-delayBtnsLayout.Padding = UDim.new(0, 4)
-delayBtnsLayout.Parent = delayBtnsRow
-
-for _, d in ipairs({0.2, 0.5, 1.0, 1.5, 2.0}) do
-    local dbtn = Instance.new("TextButton")
-    dbtn.Size = UDim2.new(0, 45, 0, 26)
-    dbtn.BackgroundColor3 = (d == 0.5) and MENU_COLOR or Color3.fromRGB(40, 40, 60)
-    dbtn.BackgroundTransparency = 0.3
-    dbtn.BorderSizePixel = 0
-    dbtn.Text = tostring(d) .. "с"
-    dbtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    dbtn.TextSize = 11
-    dbtn.Font = Enum.Font.GothamBold
-    dbtn.Parent = delayBtnsRow
-    local dc2 = Instance.new("UICorner")
-    dc2.CornerRadius = UDim.new(0, 6)
-    dc2.Parent = dbtn
-    dbtn.MouseButton1Click:Connect(function()
-        cycleDelay = d
-        delayLabel.Text = "⏱️ Задержка между циклами: " .. d .. "с"
-        for _, b in ipairs(delayBtnsRow:GetChildren()) do
-            if b:IsA("TextButton") then b.BackgroundColor3 = Color3.fromRGB(40, 40, 60) end
-        end
-        dbtn.BackgroundColor3 = MENU_COLOR
     end)
 end
 
@@ -836,52 +992,47 @@ local botStartBtn = createButton(BotTab, "▶️ СТАРТ (котенок + а
     end
 end)
 
--- ==================== СУНДУКИ ====================
+-- ==================== 📦 СУНДУКИ (ФИКС) ====================
 local ChestTab = createTab("📦 Сундуки")
 
 local chestStatus = Instance.new("TextLabel")
-chestStatus.Size = UDim2.new(1, -10, 0, 30)
+chestStatus.Size = UDim2.new(1, -10, 0, 40)
 chestStatus.BackgroundTransparency = 1
 chestStatus.Text = "Подойди к сундуку → СКАН"
 chestStatus.TextColor3 = Color3.fromRGB(150, 200, 255)
 chestStatus.TextSize = 12
 chestStatus.Font = Enum.Font.Gotham
 chestStatus.TextXAlignment = Enum.TextXAlignment.Left
+chestStatus.TextYAlignment = Enum.TextYAlignment.Top
+chestStatus.TextWrapped = true
 chestStatus.Parent = ChestTab
+
+local chestInfo = Instance.new("TextLabel")
+chestInfo.Size = UDim2.new(1, -10, 0, 20)
+chestInfo.BackgroundTransparency = 1
+chestInfo.Text = "Сундуков: 0"
+chestInfo.TextColor3 = Color3.fromRGB(200, 200, 255)
+chestInfo.TextSize = 11
+chestInfo.Font = Enum.Font.Gotham
+chestInfo.TextXAlignment = Enum.TextXAlignment.Left
+chestInfo.Parent = ChestTab
 
 createSection(ChestTab, "Управление")
 
-createButton(ChestTab, "📋 СКАН (запомнить тип)", function()
-    local char = player.Character
-    if not char then return end
-    local myRoot = char:FindFirstChild("HumanoidRootPart")
-    if not myRoot then return end
-    local nearestPrompt, nearestDist = nil, math.huge
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj:IsA("ProximityPrompt") then
-            local parent = obj.Parent
-            if parent then
-                local rootPart = parent:IsA("BasePart") and parent or parent:FindFirstChildWhichIsA("BasePart")
-                if rootPart then
-                    local d = (myRoot.Position - rootPart.Position).Magnitude
-                    if d < nearestDist and d < 10 then nearestDist = d nearestPrompt = obj end
-                end
-            end
-        end
-    end
-    if not nearestPrompt then
-        chestStatus.Text = "❌ Не нашёл prompt рядом!"
+createButton(ChestTab, "📋 СКАН (запомнить сундук)", function()
+    local ok, msg = scanChests()
+    if ok then
+        chestStatus.Text = "✅ " .. msg
+        chestStatus.TextColor3 = Color3.fromRGB(0, 255, 100)
+        chestInfo.Text = "Сундуков: " .. #chestsList
+    else
+        chestStatus.Text = "❌ " .. (msg or "Ошибка")
         chestStatus.TextColor3 = Color3.fromRGB(255, 100, 100)
-        return
     end
-    savedChestName = nearestPrompt.Parent.Name
-    savedHoldDuration = nearestPrompt.HoldDuration or 0
-    chestStatus.Text = "✅ " .. savedChestName
-    chestStatus.TextColor3 = Color3.fromRGB(0, 255, 100)
 end)
 
 local chestStartBtn = createButton(ChestTab, "▶️ СТАРТ СБОРА", function()
-    if not savedChestName then
+    if #chestsList == 0 then
         chestStatus.Text = "❌ Сначала нажми СКАН!"
         chestStatus.TextColor3 = Color3.fromRGB(255, 100, 100)
         return
@@ -899,6 +1050,25 @@ local chestStartBtn = createButton(ChestTab, "▶️ СТАРТ СБОРА", fun
         chestStatus.TextColor3 = Color3.fromRGB(255, 200, 50)
     end
 end)
+
+createSection(ChestTab, "ℹ️ Информация")
+local chestHelp = Instance.new("TextLabel")
+chestHelp.Size = UDim2.new(1, -10, 0, 80)
+chestHelp.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+chestHelp.BackgroundTransparency = 0.3
+chestHelp.BorderSizePixel = 0
+chestHelp.Text = "1️⃣ Подойди к сундуку\n2️⃣ Нажми СКАН (запомнит тип)\n3️⃣ Нажми СТАРТ СБОРА\n\n⚙️ Автоматически:\n• Телепорт к сундукам\n• Зажим E (если нужно)\n• По кругу"
+chestHelp.TextColor3 = Color3.fromRGB(200, 220, 255)
+chestHelp.TextSize = 11
+chestHelp.Font = Enum.Font.Gotham
+chestHelp.TextXAlignment = Enum.TextXAlignment.Left
+chestHelp.TextYAlignment = Enum.TextYAlignment.Top
+chestHelp.TextWrapped = true
+chestHelp.Parent = ChestTab
+
+local chCorner = Instance.new("UICorner")
+chCorner.CornerRadius = UDim.new(0, 6)
+chCorner.Parent = chestHelp
 
 -- ==================== ДВИЖЕНИЕ ====================
 local MoveTab = createTab("⚡ Движение")
@@ -1081,9 +1251,9 @@ createToggle(ShieldTab, "🛡️ Неприступность вкл/выкл", 
     shieldEnabled = state
 end)
 
--- ==================== ESP ====================
-local EspTab = createTab("👁️ ESP")
-createToggle(EspTab, "ESP игроков (мёртвые + респавн)", false, function(state)
+-- ==================== ESP ИГРОКОВ ====================
+local EspTab = createTab("👁️ ESP Игроков")
+createToggle(EspTab, "ESP игроков", false, function(state)
     espEnabled = state
     if state then
         for _, otherPlayer in ipairs(game.Players:GetPlayers()) do
@@ -1120,15 +1290,7 @@ local colorList = {
     {"💗 Розовый", Color3.fromRGB(255, 100, 200)},
     {"🩵 Голубой", Color3.fromRGB(0, 200, 255)},
     {"🤍 Белый", Color3.fromRGB(255, 255, 255)},
-    {"🖤 Чёрный", Color3.fromRGB(0, 0, 0)},
     {"💚 Лайм", Color3.fromRGB(150, 255, 0)},
-    {"🧡 Коралл", Color3.fromRGB(255, 100, 80)},
-    {"💜 Лаванда", Color3.fromRGB(180, 150, 255)},
-    {"🩷 Маджента", Color3.fromRGB(255, 0, 200)},
-    {"🌊 Морской", Color3.fromRGB(0, 255, 200)},
-    {"🌈 Радужный", Color3.fromRGB(255, 0, 128)},
-    {"💛 Золотой", Color3.fromRGB(255, 215, 0)},
-    {"🏆 Бронза", Color3.fromRGB(205, 127, 50)},
 }
 
 local colorGrid = Instance.new("Frame")
@@ -1171,6 +1333,228 @@ local rainbowColor = 0
 createToggle(EspTab, "🌈 Радужный режим", false, function(state)
     rainbowMode = state
 end)
+
+-- ==================== 🤖 ESP БОТОВ (БЕЗ E) ====================
+local BotEspTab = createTab("🤖 ESP Ботов")
+
+createSection(BotEspTab, "Управление")
+
+createToggle(BotEspTab, "🤖 ESP ботов вкл/выкл", false, function(state)
+    botEspEnabled = state
+    if state then
+        print("🤖 ESP ботов ВКЛ | Радиус: " .. botEspRadius)
+    else
+        clearAllBotEsp()
+        print("🤖 ESP ботов ВЫКЛ")
+    end
+end)
+
+-- Радиус
+local radiusRow = Instance.new("Frame")
+radiusRow.Size = UDim2.new(1, -10, 0, 55)
+radiusRow.BackgroundTransparency = 1
+radiusRow.Parent = BotEspTab
+
+local radiusLabel = Instance.new("TextLabel")
+radiusLabel.Size = UDim2.new(1, 0, 0, 20)
+radiusLabel.BackgroundTransparency = 1
+radiusLabel.Text = "📏 Радиус: 300 студ."
+radiusLabel.TextColor3 = Color3.fromRGB(150, 200, 255)
+radiusLabel.TextSize = 11
+radiusLabel.Font = Enum.Font.Gotham
+radiusLabel.TextXAlignment = Enum.TextXAlignment.Left
+radiusLabel.Parent = radiusRow
+
+local radiusBtnsRow = Instance.new("Frame")
+radiusBtnsRow.Size = UDim2.new(1, 0, 0, 30)
+radiusBtnsRow.Position = UDim2.new(0, 0, 0, 22)
+radiusBtnsRow.BackgroundTransparency = 1
+radiusBtnsRow.Parent = radiusRow
+
+local radiusLayout = Instance.new("UIListLayout")
+radiusLayout.FillDirection = Enum.FillDirection.Horizontal
+radiusLayout.Padding = UDim.new(0, 4)
+radiusLayout.Parent = radiusBtnsRow
+
+for _, r in ipairs({100, 200, 300, 500, 1000}) do
+    local rbtn = Instance.new("TextButton")
+    rbtn.Size = UDim2.new(0, 50, 0, 26)
+    rbtn.BackgroundColor3 = (r == 300) and MENU_COLOR or Color3.fromRGB(40, 40, 60)
+    rbtn.BackgroundTransparency = 0.3
+    rbtn.BorderSizePixel = 0
+    rbtn.Text = tostring(r)
+    rbtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    rbtn.TextSize = 11
+    rbtn.Font = Enum.Font.GothamBold
+    rbtn.Parent = radiusBtnsRow
+    local rc = Instance.new("UICorner")
+    rc.CornerRadius = UDim.new(0, 6)
+    rc.Parent = rbtn
+    rbtn.MouseButton1Click:Connect(function()
+        botEspRadius = r
+        radiusLabel.Text = "📏 Радиус: " .. r .. " студ."
+        for _, b in ipairs(radiusBtnsRow:GetChildren()) do
+            if b:IsA("TextButton") then b.BackgroundColor3 = Color3.fromRGB(40, 40, 60) end
+        end
+        rbtn.BackgroundColor3 = MENU_COLOR
+    end)
+end
+
+createSection(BotEspTab, "🎨 Цвет ESP")
+
+local botColorGrid = Instance.new("Frame")
+botColorGrid.Size = UDim2.new(1, -10, 0, 0)
+botColorGrid.BackgroundTransparency = 1
+botColorGrid.Parent = BotEspTab
+
+local bcgLayout = Instance.new("UIGridLayout")
+bcgLayout.CellSize = UDim2.new(0, 88, 0, 30)
+bcgLayout.CellPadding = UDim2.new(0, 4, 0, 4)
+bcgLayout.Parent = botColorGrid
+
+bcgLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    botColorGrid.Size = UDim2.new(1, -10, 0, bcgLayout.AbsoluteContentSize.Y)
+end)
+
+local botColors = {
+    {"🟢 Зелёный", Color3.fromRGB(0, 255, 100)},
+    {"🔴 Красный", Color3.fromRGB(255, 0, 0)},
+    {"🔵 Синий", Color3.fromRGB(0, 100, 255)},
+    {"🟡 Жёлтый", Color3.fromRGB(255, 255, 0)},
+    {"🟣 Фиолет", Color3.fromRGB(180, 0, 255)},
+    {"🟠 Оранж", Color3.fromRGB(255, 130, 0)},
+    {"💗 Розовый", Color3.fromRGB(255, 100, 200)},
+    {"🩵 Голубой", Color3.fromRGB(0, 200, 255)},
+    {"🤍 Белый", Color3.fromRGB(255, 255, 255)},
+    {"💚 Лайм", Color3.fromRGB(150, 255, 0)},
+}
+
+for _, data in ipairs(botColors) do
+    local cbtn = Instance.new("TextButton")
+    cbtn.BackgroundColor3 = data[2]
+    cbtn.BackgroundTransparency = 0.2
+    cbtn.BorderSizePixel = 0
+    cbtn.Text = data[1]
+    cbtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    cbtn.TextSize = 10
+    cbtn.Font = Enum.Font.GothamBold
+    cbtn.Parent = botColorGrid
+    local cc = Instance.new("UICorner")
+    cc.CornerRadius = UDim.new(0, 6)
+    cc.Parent = cbtn
+    cbtn.MouseButton1Click:Connect(function()
+        botEspColor = data[2]
+        for _, hl in pairs(botEspObjects) do
+            if hl and hl.Parent then hl.FillColor = data[2] end
+        end
+    end)
+end
+
+-- СПИСОК БОТОВ ДЛЯ ТП
+createSection(BotEspTab, "🎯 Боты рядом (ТП)")
+
+local botTpScroll = Instance.new("ScrollingFrame")
+botTpScroll.Size = UDim2.new(1, -10, 0, 180)
+botTpScroll.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+botTpScroll.BackgroundTransparency = 0.4
+botTpScroll.BorderSizePixel = 0
+botTpScroll.ScrollBarThickness = 6
+botTpScroll.ScrollBarImageColor3 = MENU_COLOR
+botTpScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+botTpScroll.ScrollingDirection = Enum.ScrollingDirection.Y
+botTpScroll.Parent = BotEspTab
+
+local btCorner = Instance.new("UICorner")
+btCorner.CornerRadius = UDim.new(0, 8)
+btCorner.Parent = botTpScroll
+
+local botTpList = Instance.new("Frame")
+botTpList.Size = UDim2.new(1, -10, 0, 0)
+botTpList.Position = UDim2.new(0, 5, 0, 5)
+botTpList.BackgroundTransparency = 1
+botTpList.Parent = botTpScroll
+
+local btLayout = Instance.new("UIListLayout")
+btLayout.Padding = UDim.new(0, 3)
+btLayout.Parent = botTpList
+
+btLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    botTpList.Size = UDim2.new(1, -10, 0, btLayout.AbsoluteContentSize.Y)
+    botTpScroll.CanvasSize = UDim2.new(0, 0, 0, btLayout.AbsoluteContentSize.Y + 15)
+end)
+
+local function updateBotTpList()
+    for _, c in ipairs(botTpList:GetChildren()) do
+        if c:IsA("TextButton") then c:Destroy() end
+    end
+    
+    if #botEspList == 0 then
+        local empty = Instance.new("TextLabel")
+        empty.Size = UDim2.new(1, 0, 0, 30)
+        empty.BackgroundTransparency = 1
+        empty.Text = "Нет ботов в радиусе"
+        empty.TextColor3 = Color3.fromRGB(150, 150, 170)
+        empty.TextSize = 11
+        empty.Font = Enum.Font.Gotham
+        empty.Parent = botTpList
+        return
+    end
+    
+    for i, entry in ipairs(botEspList) do
+        if i > 30 then break end -- максимум 30 ботов
+        
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(1, 0, 0, 30)
+        btn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+        btn.BackgroundTransparency = 0.3
+        btn.BorderSizePixel = 0
+        btn.Text = "  " .. entry.model.Name .. " | " .. math.floor(entry.distance) .. " ст."
+        btn.TextColor3 = Color3.fromRGB(220, 220, 255)
+        btn.TextSize = 11
+        btn.Font = Enum.Font.Gotham
+        btn.TextXAlignment = Enum.TextXAlignment.Left
+        btn.Parent = botTpList
+        local c = Instance.new("UICorner")
+        c.CornerRadius = UDim.new(0, 6)
+        c.Parent = btn
+        btn.MouseButton1Click:Connect(function()
+            -- Телепорт к боту
+            local myRoot = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+            if myRoot and entry.root and entry.root.Parent then
+                myRoot.CFrame = CFrame.new(entry.root.Position + Vector3.new(0, 3, 0))
+                print("🎯 ТП к: " .. entry.model.Name)
+            end
+        end)
+    end
+    
+    task.wait()
+    botTpList.Size = UDim2.new(1, -10, 0, btLayout.AbsoluteContentSize.Y)
+    botTpScroll.CanvasSize = UDim2.new(0, 0, 0, btLayout.AbsoluteContentSize.Y + 15)
+end
+
+createButton(BotEspTab, "🔄 Обновить список ботов", function()
+    updateBotEsp()
+    updateBotTpList()
+end)
+
+createSection(BotEspTab, "ℹ️ Информация")
+local botInfoLabel = Instance.new("TextLabel")
+botInfoLabel.Size = UDim2.new(1, -10, 0, 50)
+botInfoLabel.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+botInfoLabel.BackgroundTransparency = 0.3
+botInfoLabel.BorderSizePixel = 0
+botInfoLabel.Text = "🤖 Показывает всех ботов в радиусе\n🎯 Нажми на бота в списке → ТП к нему\n⚠️ Обновление раз в 0.3 сек"
+botInfoLabel.TextColor3 = Color3.fromRGB(200, 220, 255)
+botInfoLabel.TextSize = 11
+botInfoLabel.Font = Enum.Font.Gotham
+botInfoLabel.TextXAlignment = Enum.TextXAlignment.Left
+botInfoLabel.TextYAlignment = Enum.TextYAlignment.Top
+botInfoLabel.TextWrapped = true
+botInfoLabel.Parent = BotEspTab
+
+local biCorner = Instance.new("UICorner")
+biCorner.CornerRadius = UDim.new(0, 6)
+biCorner.Parent = botInfoLabel
 
 -- ==================== 🎯 PvP ====================
 local PvpTab = createTab("🎯 PvP")
@@ -1259,91 +1643,6 @@ updatePvpList()
 
 createButton(PvpTab, "🔄 Обновить игроков", function() updatePvpList() end)
 
-createSection(PvpTab, "Выбери бота")
-
-local botScroll2 = Instance.new("ScrollingFrame")
-botScroll2.Size = UDim2.new(1, -10, 0, 120)
-botScroll2.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-botScroll2.BackgroundTransparency = 0.4
-botScroll2.BorderSizePixel = 0
-botScroll2.ScrollBarThickness = 6
-botScroll2.ScrollBarImageColor3 = MENU_COLOR
-botScroll2.CanvasSize = UDim2.new(0, 0, 0, 0)
-botScroll2.ScrollingDirection = Enum.ScrollingDirection.Y
-botScroll2.Parent = PvpTab
-
-local botScrollCorner2 = Instance.new("UICorner")
-botScrollCorner2.CornerRadius = UDim.new(0, 8)
-botScrollCorner2.Parent = botScroll2
-
-local botList2 = Instance.new("Frame")
-botList2.Size = UDim2.new(1, -10, 0, 0)
-botList2.Position = UDim2.new(0, 5, 0, 5)
-botList2.BackgroundTransparency = 1
-botList2.Parent = botScroll2
-
-local botLayout2 = Instance.new("UIListLayout")
-botLayout2.Padding = UDim.new(0, 3)
-botLayout2.Parent = botList2
-
-botLayout2:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    botList2.Size = UDim2.new(1, -10, 0, botLayout2.AbsoluteContentSize.Y)
-    botScroll2.CanvasSize = UDim2.new(0, 0, 0, botLayout2.AbsoluteContentSize.Y + 15)
-end)
-
-local function updateBotList2()
-    for _, c in ipairs(botList2:GetChildren()) do
-        if c:IsA("TextButton") then c:Destroy() end
-    end
-    local seenNames = {}
-    for _, obj in ipairs(workspace:GetChildren()) do
-        if obj:IsA("Model") and obj ~= player.Character then
-            local hum = obj:FindFirstChild("Humanoid")
-            if hum and hum.Health > 0 and not seenNames[obj.Name] then
-                local isPlayer = false
-                for _, p in ipairs(game.Players:GetPlayers()) do
-                    if p.Character == obj then isPlayer = true break end
-                end
-                if not isPlayer then
-                    seenNames[obj.Name] = true
-                    local btn = Instance.new("TextButton")
-                    btn.Size = UDim2.new(1, 0, 0, 30)
-                    btn.BackgroundColor3 = (pvpTargetName == obj.Name) and MENU_COLOR or Color3.fromRGB(40, 40, 60)
-                    btn.BackgroundTransparency = 0.3
-                    btn.BorderSizePixel = 0
-                    btn.Text = "  🤖 " .. obj.Name
-                    btn.TextColor3 = Color3.fromRGB(220, 220, 255)
-                    btn.TextSize = 12
-                    btn.Font = Enum.Font.Gotham
-                    btn.TextXAlignment = Enum.TextXAlignment.Left
-                    btn.Parent = botList2
-                    local c = Instance.new("UICorner")
-                    c.CornerRadius = UDim.new(0, 6)
-                    c.Parent = btn
-                    btn.MouseButton1Click:Connect(function()
-                        pvpTargetName = obj.Name
-                        pvpBotTarget = obj
-                        pvpTarget = nil
-                        pvpStatus.Text = "Цель: 🤖 " .. obj.Name .. " | Z = ТП"
-                        pvpStatus.TextColor3 = Color3.fromRGB(0, 255, 100)
-                        for _, b in ipairs(botList2:GetChildren()) do
-                            if b:IsA("TextButton") then b.BackgroundColor3 = Color3.fromRGB(40, 40, 60) end
-                        end
-                        btn.BackgroundColor3 = MENU_COLOR
-                    end)
-                end
-            end
-        end
-    end
-    task.wait()
-    botList2.Size = UDim2.new(1, -10, 0, botLayout2.AbsoluteContentSize.Y)
-    botScroll2.CanvasSize = UDim2.new(0, 0, 0, botLayout2.AbsoluteContentSize.Y + 15)
-end
-
-updateBotList2()
-
-createButton(PvpTab, "🔄 Обновить ботов", function() updateBotList2() end)
-
 createSection(PvpTab, "Действие")
 createButton(PvpTab, "🎯 ТП за спину + камера (Z)", function()
     doPvpTeleport()
@@ -1387,9 +1686,7 @@ local function deleteModuleFromDisk(name)
     if not hasFileSystem then return false end
     name = string.gsub(name, "[^%w_%-]", "_")
     local filePath = MODULES_FOLDER .. "/" .. name .. ".lua"
-    if isfile(filePath) then
-        return pcall(delfile, filePath)
-    end
+    if isfile(filePath) then return pcall(delfile, filePath) end
     return false
 end
 
@@ -1401,6 +1698,7 @@ local function executeModule(name, code)
         return
     end
     local env = setmetatable({}, {__index = getfenv()})
+    env._G = _G
     env.player = player
     env.cam = cam
     env.uis = uis
@@ -1421,10 +1719,51 @@ local function executeModule(name, code)
     moduleEnvs[name] = env
 end
 
+_G.KSAS = {
+    player = player,
+    cam = cam,
+    uis = uis,
+    runService = runService,
+    vim = vim,
+    createTab = createTab,
+    createButton = createButton,
+    createSection = createSection,
+    createToggle = createToggle,
+    tabPages = tabPages,
+    tabsFrame = tabsFrame,
+    contentFrame = contentFrame,
+    mainFrame = main,
+    screenGui = screenGui,
+    getPlayerRoot = function()
+        local char = player.Character
+        return char and char:FindFirstChild("HumanoidRootPart")
+    end,
+    getNearestBot = findNearestBotWithName,
+    applyESP = applyESP,
+    pvpTeleport = doPvpTeleport,
+    getMenuColor = function() return MENU_COLOR end,
+    setMenuColor = function(color)
+        MENU_COLOR = color
+        for _, entry in ipairs(menuColorObjects) do
+            if entry.obj and entry.obj.Parent ~= nil then
+                if entry.prop == "Color" and entry.obj:IsA("UIStroke") then
+                    entry.obj.Color = color
+                elseif entry.prop == "BackgroundColor3" then
+                    entry.obj.BackgroundColor3 = color
+                elseif entry.prop == "TextColor3" and entry.obj:IsA("TextLabel") then
+                    entry.obj.TextColor3 = color
+                elseif entry.prop == "ScrollBarImageColor3" then
+                    entry.obj.ScrollBarImageColor3 = color
+                end
+            end
+        end
+    end,
+}
+
 createSection(ModulesTab, "➕ Новый модуль")
 
 local nameBox = Instance.new("TextBox")
-nameBox.Size = UDim2.new(1, -10, 0, 28)
+nameBox.Size = UDim2.new(1, -10, 0, 32)
 nameBox.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
 nameBox.BackgroundTransparency = 0.2
 nameBox.BorderSizePixel = 0
@@ -1435,6 +1774,10 @@ nameBox.PlaceholderColor3 = Color3.fromRGB(120, 120, 140)
 nameBox.TextSize = 12
 nameBox.Font = Enum.Font.Gotham
 nameBox.ClearTextOnFocus = false
+nameBox.Active = true
+nameBox.Selectable = true
+nameBox.TextEditable = true
+nameBox.ZIndex = 5
 nameBox.Parent = ModulesTab
 
 local nc = Instance.new("UICorner")
@@ -1442,12 +1785,12 @@ nc.CornerRadius = UDim.new(0, 6)
 nc.Parent = nameBox
 
 local codeBox = Instance.new("TextBox")
-codeBox.Size = UDim2.new(1, -10, 0, 180)
+codeBox.Size = UDim2.new(1, -10, 0, 150)
 codeBox.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
 codeBox.BackgroundTransparency = 0.2
 codeBox.BorderSizePixel = 0
 codeBox.Text = ""
-codeBox.PlaceholderText = "-- Вставь свой код сюда\nprint('Hello from module!')"
+codeBox.PlaceholderText = "-- Вставь свой код сюда"
 codeBox.TextColor3 = Color3.fromRGB(220, 220, 255)
 codeBox.PlaceholderColor3 = Color3.fromRGB(100, 100, 120)
 codeBox.TextSize = 11
@@ -1457,6 +1800,10 @@ codeBox.TextYAlignment = Enum.TextYAlignment.Top
 codeBox.TextWrapped = true
 codeBox.MultiLine = true
 codeBox.ClearTextOnFocus = false
+codeBox.Active = true
+codeBox.Selectable = true
+codeBox.TextEditable = true
+codeBox.ZIndex = 5
 codeBox.Parent = ModulesTab
 
 local cc = Instance.new("UICorner")
@@ -1531,7 +1878,7 @@ rc.Parent = refreshBtn
 createSection(ModulesTab, "📋 Загруженные модули")
 
 local modulesScroll = Instance.new("ScrollingFrame")
-modulesScroll.Size = UDim2.new(1, -10, 0, 200)
+modulesScroll.Size = UDim2.new(1, -10, 0, 180)
 modulesScroll.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
 modulesScroll.BackgroundTransparency = 0.4
 modulesScroll.BorderSizePixel = 0
@@ -1568,7 +1915,6 @@ updateModulesList = function()
             child:Destroy()
         end
     end
-    
     local count = 0
     for name, code in pairs(customModules) do
         count = count + 1
@@ -1578,11 +1924,9 @@ updateModulesList = function()
         row.BackgroundTransparency = 0.3
         row.BorderSizePixel = 0
         row.Parent = modulesList
-        
         local rowCorner = Instance.new("UICorner")
         rowCorner.CornerRadius = UDim.new(0, 6)
         rowCorner.Parent = row
-        
         local nameBtn = Instance.new("TextButton")
         nameBtn.Size = UDim2.new(0.55, 0, 1, 0)
         nameBtn.Position = UDim2.new(0, 5, 0, 0)
@@ -1597,7 +1941,6 @@ updateModulesList = function()
             codeBox.Text = customModules[name]
             nameBox.Text = name
         end)
-        
         local runBtn = Instance.new("TextButton")
         runBtn.Size = UDim2.new(0, 55, 1, -4)
         runBtn.Position = UDim2.new(0.55, 0, 0, 2)
@@ -1615,7 +1958,6 @@ updateModulesList = function()
         runBtn.MouseButton1Click:Connect(function()
             executeModule(name, customModules[name])
         end)
-        
         local delBtn = Instance.new("TextButton")
         delBtn.Size = UDim2.new(0, 55, 1, -4)
         delBtn.Position = UDim2.new(0.75, 0, 0, 2)
@@ -1637,19 +1979,17 @@ updateModulesList = function()
             updateModulesList()
         end)
     end
-    
     if count == 0 then
         local empty = Instance.new("TextLabel")
         empty.Size = UDim2.new(1, 0, 0, 40)
         empty.BackgroundTransparency = 1
-        empty.Text = "Пока нет модулей\nВставь код выше и жми СОХРАНИТЬ"
+        empty.Text = "Пока нет модулей"
         empty.TextColor3 = Color3.fromRGB(150, 150, 170)
         empty.TextSize = 12
         empty.Font = Enum.Font.Gotham
         empty.TextWrapped = true
         empty.Parent = modulesList
     end
-    
     task.wait()
     modulesList.Size = UDim2.new(1, -10, 0, mlLayout.AbsoluteContentSize.Y)
     modulesScroll.CanvasSize = UDim2.new(0, 0, 0, mlLayout.AbsoluteContentSize.Y + 15)
@@ -1673,7 +2013,7 @@ saveBtn.MouseButton1Click:Connect(function()
     if hasFileSystem then saveModuleToDisk(cleanName, code) end
     executeModule(cleanName, code)
     updateModulesList()
-    modStatus.Text = "✅ Модуль сохранён и запущен: " .. cleanName
+    modStatus.Text = "✅ Модуль: " .. cleanName
     modStatus.TextColor3 = Color3.fromRGB(0, 255, 100)
     codeBox.Text = ""
 end)
@@ -1687,7 +2027,7 @@ end)
 refreshBtn.MouseButton1Click:Connect(function()
     loadModulesFromDisk()
     updateModulesList()
-    modStatus.Text = "🔄 Список обновлён"
+    modStatus.Text = "🔄 Обновлено"
     modStatus.TextColor3 = Color3.fromRGB(150, 200, 255)
 end)
 
@@ -1859,6 +2199,16 @@ runService.RenderStepped:Connect(function()
     end
 end)
 
+-- ESP БОТОВ ЦИКЛ
+task.spawn(function()
+    while true do
+        task.wait(0.3)
+        if botEspEnabled then
+            updateBotEsp()
+        end
+    end
+end)
+
 runService.Heartbeat:Connect(function()
     if shieldEnabled then
         local myRoot = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
@@ -1955,8 +2305,7 @@ uis.InputBegan:Connect(function(input, gpe)
     end
 end)
 
-print("✅ KSAS ULTIMATE v4.0 загружен!")
-print("📦 Модули: сохраняются в папку " .. MODULES_FOLDER)
-print("🤖 Котенок-Бот: авто-кнопки ЛКМ×3 + M2 + R+G+C+X+V")
-print("🎯 PvP: игроки + боты | Z = ТП")
+print("✅ KSAS ULTIMATE v4.3 загружен!")
+print("🤖 ESP Ботов: радиус + список для ТП")
+print("📦 Сундуки: ФИКС (нормальный скан + сбор)")
 print("⌨️ 2-5 = метки | Z = PvP | − = свернуть | ✕ = закрыть")
