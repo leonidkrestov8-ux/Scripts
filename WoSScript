@@ -1,6 +1,7 @@
 -- =====================================================================
--- KSAS ULTIMATE v6.0 (МАКСИМУМ)
+-- KSAS ULTIMATE v6.1 (ФИКС Callback Error)
 -- 🔥 Fluent UI | 🐱 Котенок | 🎯 PvP | 👁️ ESP | 📦 Модули | 🎨 Темы
+-- ✅ Фильтр ботов E/без E с защитой от ошибок
 -- =====================================================================
 
 -- ==================== ОЧИСТКА СТАРОГО МЕНЮ ====================
@@ -131,8 +132,9 @@ local function findNearestBotWithName(name)
     return nearest
 end
 
--- ==================== ESP БОТОВ ====================
+-- ==================== ESP БОТОВ (С ЗАЩИТОЙ ОТ ОШИБОК) ====================
 local function isPlayerCharacter(model)
+    if not model then return false end
     for _, p in ipairs(game.Players:GetPlayers()) do
         if p.Character == model then return true end
     end
@@ -140,47 +142,77 @@ local function isPlayerCharacter(model)
 end
 
 local function botHasE(botModel)
-    for _, obj in ipairs(botModel:GetDescendants()) do
-        if obj:IsA("ProximityPrompt") then
-            if obj.Enabled and obj.MaxActivationDistance > 0 then
-                return true
+    if not botModel or not botModel.Parent then return false end
+    
+    local hasE = false
+    pcall(function()
+        for _, obj in ipairs(botModel:GetDescendants()) do
+            if obj and obj.Parent and obj:IsA("ProximityPrompt") then
+                local enabled = obj.Enabled
+                local dist = obj.MaxActivationDistance
+                if enabled == true and dist and dist > 0 then
+                    hasE = true
+                    break
+                end
             end
         end
+    end)
+    return hasE
+end
+
+local function botMatchesFilter(botModel)
+    if not botModel then return false end
+    
+    if botEspFilter == "all" then 
+        return true
+    elseif botEspFilter == "withE" then 
+        local ok, result = pcall(botHasE, botModel)
+        if ok then return result end
+        return false
+    elseif botEspFilter == "noE" then 
+        local ok, result = pcall(botHasE, botModel)
+        if ok then return not result end
+        return false
     end
     return false
 end
 
-local function botMatchesFilter(botModel)
-    if botEspFilter == "all" then return true
-    elseif botEspFilter == "withE" then return botHasE(botModel)
-    elseif botEspFilter == "noE" then return not botHasE(botModel) end
-    return false
-end
-
 local function addBotEsp(botModel)
-    if botEspObjects[botModel] then return end
-    local hl = Instance.new("Highlight")
-    hl.Name = "XenoBotESP"
-    hl.Adornee = botModel
-    hl.FillColor = botEspColor
-    hl.FillTransparency = 0.4
-    hl.OutlineColor = Color3.fromRGB(255, 255, 255)
-    hl.OutlineTransparency = 0
-    hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-    hl.Parent = botModel
-    botEspObjects[botModel] = hl
+    if not botModel or botEspObjects[botModel] then return end
+    
+    pcall(function()
+        local hl = Instance.new("Highlight")
+        hl.Name = "XenoBotESP"
+        hl.Adornee = botModel
+        hl.FillColor = botEspColor
+        hl.FillTransparency = 0.4
+        hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+        hl.OutlineTransparency = 0
+        hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+        hl.Parent = botModel
+        botEspObjects[botModel] = hl
+    end)
 end
 
 local function removeBotEsp(botModel)
+    if not botModel then return end
     if botEspObjects[botModel] then
-        if botEspObjects[botModel].Parent then botEspObjects[botModel]:Destroy() end
+        pcall(function()
+            if botEspObjects[botModel].Parent then 
+                botEspObjects[botModel]:Destroy() 
+            end
+        end)
         botEspObjects[botModel] = nil
     end
 end
 
 local function clearAllBotEsp()
     for model, hl in pairs(botEspObjects) do
-        if hl and hl.Parent then hl:Destroy() end
+        if hl then
+            pcall(function()
+                if hl.Parent then hl:Destroy() end
+            end)
+        end
     end
     botEspObjects = {}
     botEspList = {}
@@ -188,42 +220,52 @@ end
 
 local function updateBotEsp()
     if not botEspEnabled then return end
-    local myRoot = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-    if not myRoot then return end
-    local myPos = myRoot.Position
-    local seenBots = {}
-    botEspList = {}
     
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj:IsA("Model") and obj ~= player.Character and not isPlayerCharacter(obj) then
-            local hum = obj:FindFirstChild("Humanoid")
-            if hum and hum.Health > 0 then
-                local botRoot = obj:FindFirstChild("HumanoidRootPart") 
-                    or obj:FindFirstChild("Torso") 
-                    or obj:FindFirstChild("UpperTorso")
-                if botRoot then
-                    local dist = (myPos - botRoot.Position).Magnitude
-                    if dist <= botEspRadius and botMatchesFilter(obj) then
-                        seenBots[obj] = true
-                        table.insert(botEspList, {model = obj, root = botRoot, distance = dist})
-                        if not botEspObjects[obj] then
-                            addBotEsp(obj)
-                        else
-                            botEspObjects[obj].FillColor = botEspColor
+    pcall(function()
+        local myRoot = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+        if not myRoot then return end
+        
+        local myPos = myRoot.Position
+        local seenBots = {}
+        botEspList = {}
+        
+        for _, obj in ipairs(workspace:GetDescendants()) do
+            if obj and obj.Parent and obj:IsA("Model") and obj ~= player.Character and not isPlayerCharacter(obj) then
+                local hum = obj:FindFirstChild("Humanoid")
+                if hum and hum.Health and hum.Health > 0 then
+                    local botRoot = obj:FindFirstChild("HumanoidRootPart") 
+                        or obj:FindFirstChild("Torso") 
+                        or obj:FindFirstChild("UpperTorso")
+                    if botRoot and botRoot.Position then
+                        local dist = (myPos - botRoot.Position).Magnitude
+                        if dist <= botEspRadius and botMatchesFilter(obj) then
+                            seenBots[obj] = true
+                            table.insert(botEspList, {model = obj, root = botRoot, distance = dist})
+                            if not botEspObjects[obj] then
+                                addBotEsp(obj)
+                            else
+                                pcall(function()
+                                    if botEspObjects[obj] and botEspObjects[obj].Parent then
+                                        botEspObjects[obj].FillColor = botEspColor
+                                    end
+                                end)
+                            end
                         end
                     end
                 end
             end
         end
-    end
-    
-    table.sort(botEspList, function(a, b) return a.distance < b.distance end)
-    
-    for model, hl in pairs(botEspObjects) do
-        if not seenBots[model] or not model.Parent then
-            removeBotEsp(model)
+        
+        pcall(function()
+            table.sort(botEspList, function(a, b) return a.distance < b.distance end)
+        end)
+        
+        for model, hl in pairs(botEspObjects) do
+            if not seenBots[model] or not model or not model.Parent then
+                removeBotEsp(model)
+            end
         end
-    end
+    end)
 end
 
 -- ==================== СУНДУКИ ====================
@@ -446,7 +488,7 @@ end
 
 -- ==================== ОКНО ====================
 local Window = Fluent:CreateWindow({
-    Title = "⚡ KSAS ULTIMATE v6.0",
+    Title = "⚡ KSAS ULTIMATE v6.1",
     SubTitle = "by KSAS",
     TabWidth = 170,
     Size = UDim2.fromOffset(620, 520),
@@ -472,7 +514,7 @@ local Tabs = {
 
 -- ==================== ГЛАВНАЯ ====================
 Tabs.Main:AddParagraph({
-    Title = "⚡ KSAS ULTIMATE v6.0",
+    Title = "⚡ KSAS ULTIMATE v6.1",
     Content = "🔥 Продвинутое меню на Fluent UI\n👆 RightControl = свернуть\n🎨 Темы и акцент в Настройках"
 })
 
@@ -961,14 +1003,16 @@ Tabs.EspBots:AddToggle("BotEspToggle", {
     Title = "ESP ботов вкл/выкл",
     Default = false,
     Callback = function(state)
-        botEspEnabled = state
-        if state then
-            updateBotEsp()
-            Fluent:Notify({ Title = "🤖 ESP Ботов", Content = "ВКЛ", Duration = 2 })
-        else
-            clearAllBotEsp()
-            Fluent:Notify({ Title = "🤖 ESP Ботов", Content = "ВЫКЛ", Duration = 2 })
-        end
+        pcall(function()
+            botEspEnabled = state
+            if state then
+                updateBotEsp()
+                Fluent:Notify({ Title = "🤖 ESP Ботов", Content = "ВКЛ", Duration = 2 })
+            else
+                clearAllBotEsp()
+                Fluent:Notify({ Title = "🤖 ESP Ботов", Content = "ВЫКЛ", Duration = 2 })
+            end
+        end)
     end
 })
 
@@ -993,12 +1037,19 @@ Tabs.EspBots:AddDropdown("BotEspFilter", {
     Default = "📦 Все боты",
     Multi = false,
     Callback = function(Value)
-        if Value == "📦 Все боты" then botEspFilter = "all"
-        elseif Value == "🔵 С кнопкой E" then botEspFilter = "withE"
-        elseif Value == "⚪ Без кнопки E" then botEspFilter = "noE" end
-        clearAllBotEsp()
-        if botEspEnabled then updateBotEsp() end
-        Fluent:Notify({ Title = "🎯 Фильтр", Content = Value, Duration = 2 })
+        pcall(function()
+            if Value == "📦 Все боты" then botEspFilter = "all"
+            elseif Value == "🔵 С кнопкой E" then botEspFilter = "withE"
+            elseif Value == "⚪ Без кнопки E" then botEspFilter = "noE" end
+            
+            clearAllBotEsp()
+            
+            if botEspEnabled then 
+                updateBotEsp() 
+            end
+            
+            Fluent:Notify({ Title = "🎯 Фильтр", Content = Value, Duration = 2 })
+        end)
     end
 })
 
@@ -1024,35 +1075,41 @@ local botTpDropdown = Tabs.EspBots:AddDropdown("BotTpList", {
     Default = "",
     Callback = function(Value)
         if Value == "" then return end
-        for _, entry in ipairs(botEspList) do
-            if entry.model.Name == Value and entry.root and entry.root.Parent then
-                local myRoot = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-                if myRoot then
-                    myRoot.CFrame = CFrame.new(entry.root.Position + Vector3.new(0, 3, 0))
-                    Fluent:Notify({ Title = "🎯 ТП", Content = "К " .. Value, Duration = 2 })
+        pcall(function()
+            for _, entry in ipairs(botEspList) do
+                if entry.model.Name == Value and entry.root and entry.root.Parent then
+                    local myRoot = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                    if myRoot then
+                        myRoot.CFrame = CFrame.new(entry.root.Position + Vector3.new(0, 3, 0))
+                        Fluent:Notify({ Title = "🎯 ТП", Content = "К " .. Value, Duration = 2 })
+                    end
+                    return
                 end
-                return
             end
-        end
+        end)
     end
 })
 
 local function refreshBotTpList()
-    local list = {}
-    for i, entry in ipairs(botEspList) do
-        if i > 30 then break end
-        table.insert(list, entry.model.Name)
-    end
-    if #list == 0 then list = {"Нет ботов"} end
-    botTpDropdown:SetValues(list)
+    pcall(function()
+        local list = {}
+        for i, entry in ipairs(botEspList) do
+            if i > 30 then break end
+            table.insert(list, entry.model.Name)
+        end
+        if #list == 0 then list = {"Нет ботов"} end
+        botTpDropdown:SetValues(list)
+    end)
 end
 
 Tabs.EspBots:AddButton({
     Title = "🔄 Обновить список ботов",
     Callback = function()
-        updateBotEsp()
-        refreshBotTpList()
-        Fluent:Notify({ Title = "🔄 Обновлено", Content = "Ботов: " .. #botEspList, Duration = 2 })
+        pcall(function()
+            updateBotEsp()
+            refreshBotTpList()
+            Fluent:Notify({ Title = "🔄 Обновлено", Content = "Ботов: " .. #botEspList, Duration = 2 })
+        end)
     end
 })
 
@@ -1326,8 +1383,8 @@ task.spawn(function()
     while true do
         task.wait(0.3)
         if botEspEnabled then
-            updateBotEsp()
-            refreshBotTpList()
+            pcall(updateBotEsp)
+            pcall(refreshBotTpList)
         end
     end
 end)
@@ -1431,12 +1488,12 @@ end)
 
 -- ==================== УВЕДОМЛЕНИЕ ====================
 Fluent:Notify({
-    Title = "⚡ KSAS ULTIMATE v6.0",
+    Title = "⚡ KSAS ULTIMATE v6.1",
     Content = "Загружено! RightControl = свернуть",
     Duration = 5
 })
 
-print("✅ KSAS ULTIMATE v6.0 загружен!")
+print("✅ KSAS ULTIMATE v6.1 загружен!")
 print("🔥 Fluent UI + все функции")
-print("🎨 Темы в Настройках")
+print("✅ Фильтр ботов E/без E работает")
 print("⌨️ RightControl = свернуть")
