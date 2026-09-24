@@ -1,5 +1,5 @@
 -- =====================================================================
--- KSAS ULTIMATE v8.1 (Discord Control + Chests Full Map + Macros)
+-- KSAS ULTIMATE v8.2 (Discord + Chests + Macros FIXED)
 -- 🔥 Fluent UI | 🐱 Котенок | 🎯 PvP | 👁️ ESP Ботов (только с E)
 -- 🌐 Discord Remote Control | 📦 Сундуки по всей карте | 🖱️ Макросы
 -- =====================================================================
@@ -105,7 +105,7 @@ local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0, 55)
 title.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
 title.BorderSizePixel = 0
-title.Text = "🔒 KSAS ULTIMATE v8.1"
+title.Text = "🔒 KSAS ULTIMATE v8.2"
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.TextSize = 22
 title.Font = Enum.Font.GothamBold
@@ -244,26 +244,27 @@ local function launchMainScript()
     local pvpTargetName = nil
     local pvpCooldown = false
 
-    -- ==================== МАКРОСЫ (v8.1) ====================
+    -- ==================== МАКРОСЫ (v8.2) ====================
     local MACROS_FOLDER = "KSAS_Macros"
     local hasFS = (writefile and readfile and isfile and makefolder and listfiles and isfolder and delfile)
     if hasFS and not isfolder(MACROS_FOLDER) then makefolder(MACROS_FOLDER) end
 
-    local macroRecording   = false
-    local macroPlaying     = false
-    local macroEvents      = {}
-    local macroStartTime   = 0
-    local macroPlaySpeed   = 1.0
-    local macroLoop        = false
-    local macroList        = {}
-    local macroSelected    = nil
-    local macroNameValue   = ""
-    local macroRecKey      = Enum.KeyCode.F1
-    local macroStopKey     = Enum.KeyCode.F2
-    local macroPlayKey     = Enum.KeyCode.F3
-    local recordingConn    = nil
-    local recordingEndConn = nil
-    local playingToken     = 0
+    local macroRecording     = false
+    local macroPlaying       = false
+    local macroEvents        = {}
+    local macroStartTime     = 0
+    local macroPlaySpeed     = 1.0
+    local macroLoop          = false
+    local macroList          = {}
+    local macroSelected      = nil
+    local macroNameValue     = ""
+    local macroRecKey        = Enum.KeyCode.F1
+    local macroStopKey       = Enum.KeyCode.F2
+    local macroPlayKey       = Enum.KeyCode.F3
+    local recordingConn      = nil
+    local recordingEndConn   = nil
+    local recordingMoveConn  = nil
+    local playingToken       = 0
 
     -- ==================== ESP ФУНКЦИИ ====================
     local function applyESP(char)
@@ -701,7 +702,7 @@ local function launchMainScript()
 
     -- ==================== FLUENT WINDOW ====================
     local Window = Fluent:CreateWindow({
-        Title = "⚡ KSAS ULTIMATE v8.1",
+        Title = "⚡ KSAS ULTIMATE v8.2",
         SubTitle = "by KSAS",
         TabWidth = 170,
         Size = UDim2.fromOffset(640, 540),
@@ -729,7 +730,7 @@ local function launchMainScript()
 
     -- ГЛАВНАЯ
     Tabs.Main:AddParagraph({
-        Title = "⚡ KSAS ULTIMATE v8.1",
+        Title = "⚡ KSAS ULTIMATE v8.2",
         Content = "🔥 Fluent UI\n🔒 License Active\n🌐 Discord Control\n📦 Chests Full Map\n🖱️ Macros (F1/F2/F3)\n👆 RightControl = свернуть"
     })
 
@@ -796,7 +797,8 @@ local function launchMainScript()
                 local root = char:FindFirstChild("HumanoidRootPart")
                 if root then root.CFrame = CFrame.new(savedPositions[2]) end
             end
-        end    })
+        end
+    })
 
     -- КОТЕНОК
     Tabs.Stalker:AddSection("⚙️ Настройки")
@@ -954,7 +956,7 @@ local function launchMainScript()
         end
     })
 
-    -- ==================== МАКРОСЫ (UI) ====================
+    -- ==================== МАКРОСЫ (UI + логика) ====================
     local function sanitizeName(n)
         return (tostring(n or ""):gsub("[^%w_%-]", "_"))
     end
@@ -1013,89 +1015,61 @@ local function launchMainScript()
         end
     end
 
-    local function startRecording()
-        if macroRecording then return end
-        if macroPlaying then
-            Fluent:Notify({ Title = "⏹️ Макрос", Content = "Сначала останови воспроизведение", Duration = 2 })
-            return
+    -- === Воспроизведение: функции движения курсора и кликов ===
+    local function moveCursorAbs(x, y)
+        -- 1) mousemoveabs (нативный абсолютный)
+        if mousemoveabs then
+            local ok = pcall(mousemoveabs, x, y)
+            if ok then return true end
         end
-        macroEvents = {}
-        macroStartTime = tick()
-        macroRecording = true
-
-        if recordingConn then recordingConn:Disconnect() end
-        if recordingEndConn then recordingEndConn:Disconnect() end
-
-        recordingConn = uis.InputBegan:Connect(function(input, gpe)
-            if not macroRecording then return end
-            if input.UserInputType == Enum.UserInputType.MouseMovement then
-                local pos = uis:GetMouseLocation()
-                table.insert(macroEvents, {
-                    t = tick() - macroStartTime,
-                    type = "move",
-                    x = pos.X, y = pos.Y
-                })
-            elseif input.UserInputType == Enum.UserInputType.MouseButton1
-                or input.UserInputType == Enum.UserInputType.MouseButton2
-                or input.UserInputType == Enum.UserInputType.MouseButton3 then
-                local pos = uis:GetMouseLocation()
-                table.insert(macroEvents, {
-                    t = tick() - macroStartTime,
-                    type = "down",
-                    button = input.UserInputType.Name,
-                    x = pos.X, y = pos.Y
-                })
-            end
-        end)
-
-        recordingEndConn = uis.InputEnded:Connect(function(input)
-            if not macroRecording then return end
-            if input.UserInputType == Enum.UserInputType.MouseButton1
-                or input.UserInputType == Enum.UserInputType.MouseButton2
-                or input.UserInputType == Enum.UserInputType.MouseButton3 then
-                local pos = uis:GetMouseLocation()
-                table.insert(macroEvents, {
-                    t = tick() - macroStartTime,
-                    type = "up",
-                    button = input.UserInputType.Name,
-                    x = pos.X, y = pos.Y
-                })
-            end
-        end)
-
-        Fluent:Notify({ Title = "🔴 Запись", Content = "Идёт запись мыши... (" .. macroStopKey.Name .. " — стоп)", Duration = 3 })
+        -- 2) setmousepos
+        if setmousepos then
+            local ok = pcall(setmousepos, x, y)
+            if ok then return true end
+        end
+        -- 3) syn.mousemoverel
+        if syn and syn.mousemoverel then
+            local cur = uis:GetMouseLocation()
+            local ok = pcall(syn.mousemoverel, x - cur.X, y - cur.Y)
+            if ok then return true end
+        end
+        -- 4) mousemoverel (относительный)
+        if mousemoverel then
+            local cur = uis:GetMouseLocation()
+            local ok = pcall(mousemoverel, x - cur.X, y - cur.Y)
+            if ok then return true end
+        end
+        -- 5) Фолбэк VIM
+        pcall(function() vim:SendMouseMoveEvent(x, y, game) end)
+        return false
     end
 
-    local function stopRecording(save, name)
-        if not macroRecording then return end
-        macroRecording = false
-        if recordingConn then recordingConn:Disconnect() recordingConn = nil end
-        if recordingEndConn then recordingEndConn:Disconnect() recordingEndConn = nil end
-
-        local dur = (#macroEvents > 0) and macroEvents[#macroEvents].t or 0
-        Fluent:Notify({
-            Title = "⏹️ Запись",
-            Content = string.format("Остановлена. Событий: %d, %.2f сек", #macroEvents, dur),
-            Duration = 3
-        })
-
-        if save and #macroEvents > 0 then
-            if not name or name == "" then
-                name = "macro_" .. tostring(os.time())
-            end
-            if saveMacroToDisk(name, macroEvents) then
-                Fluent:Notify({ Title = "💾 Макрос", Content = "Сохранён: " .. sanitizeName(name), Duration = 3 })
+    local function vimClick(btn, down)
+        if btn == "MouseButton1" then
+            if down then
+                if mouse1down then pcall(mouse1down)
+                else pcall(function() vim:SendMouseButtonEvent(0,0,0,true,game,1) end) end
             else
-                Fluent:Notify({ Title = "❌ Макрос", Content = "Ошибка сохранения (нет writefile?)", Duration = 3 })
+                if mouse1up then pcall(mouse1up)
+                else pcall(function() vim:SendMouseButtonEvent(0,0,0,false,game,1) end) end
+            end
+        elseif btn == "MouseButton2" then
+            if down then
+                if mouse2down then pcall(mouse2down)
+                else pcall(function() vim:SendMouseButtonEvent(0,0,1,true,game,1) end) end
+            else
+                if mouse2up then pcall(mouse2up)
+                else pcall(function() vim:SendMouseButtonEvent(0,0,1,false,game,1) end) end
+            end
+        elseif btn == "MouseButton3" then
+            if down then
+                if mouse3down then pcall(mouse3down)
+                else pcall(function() vim:SendMouseButtonEvent(0,0,2,true,game,1) end) end
+            else
+                if mouse3up then pcall(mouse3up)
+                else pcall(function() vim:SendMouseButtonEvent(0,0,2,false,game,1) end) end
             end
         end
-    end
-
-    local function buttonToVim(btn)
-        if btn == "MouseButton1" then return 0 end
-        if btn == "MouseButton2" then return 1 end
-        if btn == "MouseButton3" then return 2 end
-        return 0
     end
 
     local function playMacroOnce(events, speed)
@@ -1110,17 +1084,15 @@ local function launchMainScript()
             if not macroPlaying then return end
 
             if ev.type == "move" then
-                pcall(function()
-                    vim:SendMouseMoveEvent(ev.x, ev.y, game)
-                end)
+                moveCursorAbs(ev.x, ev.y)
             elseif ev.type == "down" then
-                pcall(function()
-                    vim:SendMouseButtonEvent(ev.x, ev.y, buttonToVim(ev.button), true, game, 1)
-                end)
+                moveCursorAbs(ev.x, ev.y)
+                task.wait(0.005)
+                vimClick(ev.button, true)
             elseif ev.type == "up" then
-                pcall(function()
-                    vim:SendMouseButtonEvent(ev.x, ev.y, buttonToVim(ev.button), false, game, 1)
-                end)
+                moveCursorAbs(ev.x, ev.y)
+                task.wait(0.005)
+                vimClick(ev.button, false)
             end
         end
     end
@@ -1159,16 +1131,109 @@ local function launchMainScript()
         Fluent:Notify({ Title = "⏹️ Макрос", Content = "Остановлен", Duration = 2 })
     end
 
+    -- === Запись: polling GetMouseLocation ===
+    local function startRecording()
+        if macroRecording then return end
+        if macroPlaying then
+            Fluent:Notify({ Title = "⏹️ Макрос", Content = "Сначала останови воспроизведение", Duration = 2 })
+            return
+        end
+        macroEvents = {}
+        macroStartTime = tick()
+        macroRecording = true
+
+        if recordingConn then recordingConn:Disconnect() end
+        if recordingEndConn then recordingEndConn:Disconnect() end
+        if recordingMoveConn then recordingMoveConn:Disconnect() end
+
+        -- Клики через InputBegan
+        recordingConn = uis.InputBegan:Connect(function(input, gpe)
+            if not macroRecording then return end
+            if input.UserInputType == Enum.UserInputType.MouseButton1
+                or input.UserInputType == Enum.UserInputType.MouseButton2
+                or input.UserInputType == Enum.UserInputType.MouseButton3 then
+                local pos = uis:GetMouseLocation()
+                table.insert(macroEvents, {
+                    t = tick() - macroStartTime,
+                    type = "down",
+                    button = input.UserInputType.Name,
+                    x = pos.X, y = pos.Y
+                })
+            end
+        end)
+
+        recordingEndConn = uis.InputEnded:Connect(function(input)
+            if not macroRecording then return end
+            if input.UserInputType == Enum.UserInputType.MouseButton1
+                or input.UserInputType == Enum.UserInputType.MouseButton2
+                or input.UserInputType == Enum.UserInputType.MouseButton3 then
+                local pos = uis:GetMouseLocation()
+                table.insert(macroEvents, {
+                    t = tick() - macroStartTime,
+                    type = "up",
+                    button = input.UserInputType.Name,
+                    x = pos.X, y = pos.Y
+                })
+            end
+        end)
+
+        -- Движение: polling каждый кадр
+        local lastX, lastY = -1000, -1000
+        recordingMoveConn = runService.RenderStepped:Connect(function()
+            if not macroRecording then return end
+            local pos = uis:GetMouseLocation()
+            local x, y = math.floor(pos.X), math.floor(pos.Y)
+            if x ~= lastX or y ~= lastY then
+                table.insert(macroEvents, {
+                    t = tick() - macroStartTime,
+                    type = "move",
+                    x = x, y = y
+                })
+                lastX, lastY = x, y
+            end
+        end)
+
+        Fluent:Notify({
+            Title = "🔴 Запись",
+            Content = "Пишу мышь (" .. macroStopKey.Name .. " — стоп)",
+            Duration = 3
+        })
+    end
+
+    local function stopRecording(save, name)
+        if not macroRecording then return end
+        macroRecording = false
+        if recordingConn then recordingConn:Disconnect() recordingConn = nil end
+        if recordingEndConn then recordingEndConn:Disconnect() recordingEndConn = nil end
+        if recordingMoveConn then recordingMoveConn:Disconnect() recordingMoveConn = nil end
+
+        local dur = (#macroEvents > 0) and macroEvents[#macroEvents].t or 0
+        Fluent:Notify({
+            Title = "⏹️ Запись",
+            Content = string.format("Стоп. Событий: %d, %.2fs", #macroEvents, dur),
+            Duration = 3
+        })
+
+        if save and #macroEvents > 0 then
+            if not name or name == "" then
+                name = "macro_" .. tostring(os.time())
+            end
+            if saveMacroToDisk(name, macroEvents) then
+                Fluent:Notify({ Title = "💾 Макрос", Content = "Сохранён: " .. sanitizeName(name), Duration = 3 })
+            else
+                Fluent:Notify({ Title = "❌ Макрос", Content = "Ошибка сохранения", Duration = 3 })
+            end
+        end
+    end
+
     -- UI макросов
     Tabs.Macros:AddSection("🔴 Запись")
-
     Tabs.Macros:AddInput("MacroNameInput", {
         Title = "📝 Имя макроса",
         Placeholder = "например: pvp_combo",
         Default = "",
         Callback = function(Value) macroNameValue = Value end
     })
-
     Tabs.Macros:AddButton({
         Title = "🔴 НАЧАТЬ ЗАПИСЬ (F1)",
         Callback = function() startRecording() end
@@ -1253,16 +1318,42 @@ local function launchMainScript()
         end
     })
 
+    Tabs.Macros:AddSection("🧪 Тест API")
+    Tabs.Macros:AddButton({
+        Title = "Проверить доступные API мыши",
+        Callback = function()
+            local apis = {
+                "mousemoveabs", "mousemoverel", "setmousepos",
+                "mouse1click", "mouse1down", "mouse1up",
+                "mouse2click", "mouse2down", "mouse2up",
+                "mouse3click",
+            }
+            local found = {}
+            for _, n in ipairs(apis) do
+                local v = _G[n] or (getfenv and getfenv()[n])
+                table.insert(found, n .. ": " .. (type(v) == "function" and "✅" or "❌"))
+            end
+            local isSyn = syn and syn.mousemoverel and "✅" or "❌"
+            local isKrnl = KRNL_LOADED and "✅" or "❌"
+            Fluent:Notify({
+                Title = "🧪 Mouse API",
+                Content = table.concat(found, "  |  ") .. "  |  syn.mousemoverel: " .. isSyn,
+                Duration = 6
+            })
+        end
+    })
+
     Tabs.Macros:AddSection("ℹ️ Инфо")
     Tabs.Macros:AddParagraph({
         Title = "📌 Как использовать",
-        Content = "1) Введи имя макроса (или оставь пустым — сохранит с автоименем)\n" ..
+        Content = "1) Введи имя макроса\n" ..
                   "2) F1 — старт записи мыши\n" ..
-                  "3) F2 — стоп и сохранение\n" ..
-                  "4) Выбери макрос в дропдауне\n" ..
-                  "5) Задай скорость ×N (1 = как записано, 2 = в 2× быстрее, 0.5 = медленнее)\n" ..
-                  "6) F3 — воспроизвести\n\n" ..
-                  "💾 Папка: " .. MACROS_FOLDER .. " (переживает новый экзекьют)"
+                  "3) Подергай мышь и покликай в игре\n" ..
+                  "4) F2 — стоп и сохранение\n" ..
+                  "5) Выбери макрос в дропдауне\n" ..
+                  "6) Задай скорость ×N (1 = как записано, 2 = ×2, 0.5 = ×0.5)\n" ..
+                  "7) F3 — воспроизвести\n\n" ..
+                  "💾 Папка: " .. MACROS_FOLDER
     })
 
     -- ДВИЖЕНИЕ
@@ -1552,65 +1643,6 @@ local function launchMainScript()
         end
     })
 
-    Tabs.EspBots:AddSection("🌈 Быстрые цвета")
-    Tabs.EspBots:AddDropdown("BotEspPreset", {
-        Title = "Пресет цвета",
-        Values = {
-            "🟢 Зелёный", "🔴 Красный", "🔵 Синий", "🟡 Жёлтый",
-            "🟣 Фиолетовый", "🟠 Оранжевый", "🩷 Розовый", "🩵 Голубой",
-            "🤍 Белый", "🖤 Чёрный", "💛 Золотой", "💚 Лайм",
-            "🧡 Коралл", "💜 Лаванда", "🩶 Серебро", "🏆 Бронза",
-            "🌊 Морской", "🌅 Закат", "🌌 Космос", "💎 Аквамарин",
-            "🔥 Огненный", "❄️ Ледяной", "🌈 Радужный", "🩷 Маджента",
-            "🤎 Коричневый", "💗 Розовый-неон", "🧡 Тыква", "🍀 Клевер",
-            "🌺 Сакура", "💠 Циан", "🌠 Комета", "🟪 Неон-фиолет"
-        },
-        Multi = false, Default = "🟢 Зелёный",
-        Callback = function(Value)
-            local colorMap = {
-                ["🟢 Зелёный"] = Color3.fromRGB(0, 255, 100),
-                ["🔴 Красный"] = Color3.fromRGB(255, 0, 0),
-                ["🔵 Синий"] = Color3.fromRGB(0, 100, 255),
-                ["🟡 Жёлтый"] = Color3.fromRGB(255, 255, 0),
-                ["🟣 Фиолетовый"] = Color3.fromRGB(180, 0, 255),
-                ["🟠 Оранжевый"] = Color3.fromRGB(255, 130, 0),
-                ["🩷 Розовый"] = Color3.fromRGB(255, 100, 200),
-                ["🩵 Голубой"] = Color3.fromRGB(0, 200, 255),
-                ["🤍 Белый"] = Color3.fromRGB(255, 255, 255),
-                ["🖤 Чёрный"] = Color3.fromRGB(20, 20, 20),
-                ["💛 Золотой"] = Color3.fromRGB(255, 215, 0),
-                ["💚 Лайм"] = Color3.fromRGB(150, 255, 0),
-                ["🧡 Коралл"] = Color3.fromRGB(255, 100, 80),
-                ["💜 Лаванда"] = Color3.fromRGB(180, 150, 255),
-                ["🩶 Серебро"] = Color3.fromRGB(192, 192, 192),
-                ["🏆 Бронза"] = Color3.fromRGB(205, 127, 50),
-                ["🌊 Морской"] = Color3.fromRGB(0, 255, 200),
-                ["🌅 Закат"] = Color3.fromRGB(255, 100, 50),
-                ["🌌 Космос"] = Color3.fromRGB(80, 0, 150),
-                ["💎 Аквамарин"] = Color3.fromRGB(100, 255, 220),
-                ["🔥 Огненный"] = Color3.fromRGB(255, 50, 0),
-                ["❄️ Ледяной"] = Color3.fromRGB(180, 230, 255),
-                ["🌈 Радужный"] = Color3.fromRGB(255, 0, 128),
-                ["🩷 Маджента"] = Color3.fromRGB(255, 0, 200),
-                ["🤎 Коричневый"] = Color3.fromRGB(150, 75, 0),
-                ["💗 Розовый-неон"] = Color3.fromRGB(255, 50, 150),
-                ["🧡 Тыква"] = Color3.fromRGB(255, 117, 24),
-                ["🍀 Клевер"] = Color3.fromRGB(50, 205, 50),
-                ["🌺 Сакура"] = Color3.fromRGB(255, 183, 197),
-                ["💠 Циан"] = Color3.fromRGB(0, 255, 255),
-                ["🌠 Комета"] = Color3.fromRGB(135, 206, 250),
-                ["🟪 Неон-фиолет"] = Color3.fromRGB(200, 0, 255),
-            }
-            local color = colorMap[Value]
-            if color then
-                botEspColor = color
-                for _, hl in pairs(botEspObjects) do
-                    if hl and hl.Parent then hl.FillColor = color end
-                end
-            end
-        end
-    })
-
     Tabs.EspBots:AddToggle("BotEspRainbow", {
         Title = "🌈 Радужный режим (авто)", Default = false,
         Callback = function(state) botEspRainbow = state end
@@ -1712,6 +1744,7 @@ local function launchMainScript()
                   "!esp players/bots — ESP\n" ..
                   "!save <1|2> — сохранить метку\n" ..
                   "!tpto <1|2> — ТП в метку\n" ..
+                  "!macro rec/stop/play <имя>/stopall/speed <n>\n" ..
                   "!lua <код> — выполнить Lua\n" ..
                   "!stop — всё выключить"
     })
@@ -1896,10 +1929,10 @@ local function launchMainScript()
                         startPlaying(data.events, macroPlaySpeed, macroLoop)
                         notify("Макрос: " .. nm)
                     else
-                        notify("Не найден макрос: " .. nm)
+                        notify("Не найден: " .. nm)
                     end
                 else
-                    notify("Укажи имя макроса: !macro play <имя>")
+                    notify("!macro play <имя>")
                 end
             elseif sub == "stopall" then
                 stopPlaying()
@@ -2239,7 +2272,6 @@ local function launchMainScript()
         if gpe then return end
         local key = input.KeyCode
 
-        -- ===== Хоткеи макросов =====
         if key == macroRecKey then
             if macroRecording then
                 stopRecording(true, macroNameValue)
@@ -2305,12 +2337,12 @@ local function launchMainScript()
     end)
 
     Fluent:Notify({
-        Title = "⚡ KSAS ULTIMATE v8.1",
-        Content = "Загружено! Макросы: F1=запись, F2=стоп, F3=play",
+        Title = "⚡ KSAS ULTIMATE v8.2",
+        Content = "Загружено! Макросы: F1=rec, F2=stop, F3=play",
         Duration = 5
     })
 
-    print("✅ KSAS ULTIMATE v8.1 загружен!")
+    print("✅ KSAS ULTIMATE v8.2 загружен!")
 end
 
 -- ==================== ЛОГИКА ЛИЦЕНЗИИ ====================
@@ -2385,4 +2417,4 @@ sendWebhook(
     3447003
 )
 
-print("🔒 KSAS License v8.1 загружен")
+print("🔒 KSAS License v8.2 загружен")
