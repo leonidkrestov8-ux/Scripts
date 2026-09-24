@@ -1,7 +1,7 @@
 -- =====================================================================
--- KSAS ULTIMATE v8.2 (Discord + Chests + Macros FIXED)
--- 🔥 Fluent UI | 🐱 Котенок | 🎯 PvP | 👁️ ESP Ботов (только с E)
--- 🌐 Discord Remote Control | 📦 Сундуки по всей карте | 🖱️ Макросы
+-- KSAS ULTIMATE v8.3 (Discord + Chests + Macros)
+-- Fluent UI | Котенок | PvP | ESP Ботов (только с E)
+-- Discord Remote Control | Сундуки по всей карте | Макросы
 -- =====================================================================
 
 -- ==================== ОЧИСТКА СТАРОГО ====================
@@ -105,7 +105,7 @@ local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0, 55)
 title.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
 title.BorderSizePixel = 0
-title.Text = "🔒 KSAS ULTIMATE v8.2"
+title.Text = "KSAS ULTIMATE v8.3"
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.TextSize = 22
 title.Font = Enum.Font.GothamBold
@@ -119,7 +119,7 @@ local subtitle = Instance.new("TextLabel")
 subtitle.Size = UDim2.new(1, -20, 0, 25)
 subtitle.Position = UDim2.new(0, 10, 0, 65)
 subtitle.BackgroundTransparency = 1
-subtitle.Text = "🔑 Введите пароль для доступа"
+subtitle.Text = "Введите пароль для доступа"
 subtitle.TextColor3 = Color3.fromRGB(150, 200, 255)
 subtitle.TextSize = 14
 subtitle.Font = Enum.Font.Gotham
@@ -129,7 +129,7 @@ local hwidLabel = Instance.new("TextLabel")
 hwidLabel.Size = UDim2.new(1, -20, 0, 18)
 hwidLabel.Position = UDim2.new(0, 10, 0, 92)
 hwidLabel.BackgroundTransparency = 1
-hwidLabel.Text = "💻 HWID: " .. getHWID():sub(1, 32)
+hwidLabel.Text = "HWID: " .. getHWID():sub(1, 32)
 hwidLabel.TextColor3 = Color3.fromRGB(120, 140, 180)
 hwidLabel.TextSize = 10
 hwidLabel.Font = Enum.Font.Code
@@ -159,7 +159,7 @@ loginBtn.Size = UDim2.new(1, -20, 0, 50)
 loginBtn.Position = UDim2.new(0, 10, 0, 180)
 loginBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 80)
 loginBtn.BorderSizePixel = 0
-loginBtn.Text = "🔓 ВОЙТИ"
+loginBtn.Text = "ВОЙТИ"
 loginBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 loginBtn.TextSize = 16
 loginBtn.Font = Enum.Font.GothamBold
@@ -244,7 +244,7 @@ local function launchMainScript()
     local pvpTargetName = nil
     local pvpCooldown = false
 
-    -- ==================== МАКРОСЫ (v8.2) ====================
+    -- ==================== МАКРОСЫ ====================
     local MACROS_FOLDER = "KSAS_Macros"
     local hasFS = (writefile and readfile and isfile and makefolder and listfiles and isfolder and delfile)
     if hasFS and not isfolder(MACROS_FOLDER) then makefolder(MACROS_FOLDER) end
@@ -536,7 +536,7 @@ local function launchMainScript()
                         local ok, msg = scanChests()
                         if ok then
                             pcall(function()
-                                Fluent:Notify({ Title = "📦 Рескан", Content = msg, Duration = 2 })
+                                Fluent:Notify({ Title = "Рескан", Content = msg, Duration = 2 })
                             end)
                         end
                     end
@@ -702,7 +702,7 @@ local function launchMainScript()
 
     -- ==================== FLUENT WINDOW ====================
     local Window = Fluent:CreateWindow({
-        Title = "⚡ KSAS ULTIMATE v8.2",
+        Title = "KSAS ULTIMATE v8.3",
         SubTitle = "by KSAS",
         TabWidth = 170,
         Size = UDim2.fromOffset(640, 540),
@@ -712,38 +712,38 @@ local function launchMainScript()
     })
 
     local Tabs = {
-        Main = Window:AddTab({ Title = "🏠 Главная", Icon = "home" }),
-        Marks = Window:AddTab({ Title = "📍 Метки", Icon = "map-pin" }),
-        Stalker = Window:AddTab({ Title = "🐱 Котенок", Icon = "cat" }),
-        Bot = Window:AddTab({ Title = "🤖 Котенок-Бот", Icon = "bot" }),
-        Chests = Window:AddTab({ Title = "📦 Сундуки", Icon = "package" }),
-        Macros = Window:AddTab({ Title = "🖱️ Макросы", Icon = "mouse-pointer" }),
-        Move = Window:AddTab({ Title = "⚡ Движение", Icon = "move" }),
-        Shield = Window:AddTab({ Title = "🛡️ Щит", Icon = "shield" }),
-        EspPlayers = Window:AddTab({ Title = "👁️ ESP Игроков", Icon = "user" }),
-        EspBots = Window:AddTab({ Title = "🤖 ESP Ботов (E)", Icon = "users" }),
-        PvP = Window:AddTab({ Title = "🎯 PvP", Icon = "crosshair" }),
-        Discord = Window:AddTab({ Title = "🌐 Discord", Icon = "message-circle" }),
-        Modules = Window:AddTab({ Title = "📦 Модули", Icon = "code" }),
-        Settings = Window:AddTab({ Title = "⚙️ Настройки", Icon = "settings" })
+        Main = Window:AddTab({ Title = "Главная", Icon = "home" }),
+        Marks = Window:AddTab({ Title = "Метки", Icon = "map-pin" }),
+        Stalker = Window:AddTab({ Title = "Котенок", Icon = "cat" }),
+        Bot = Window:AddTab({ Title = "Котенок-Бот", Icon = "bot" }),
+        Chests = Window:AddTab({ Title = "Сундуки", Icon = "package" }),
+        Macros = Window:AddTab({ Title = "Макросы", Icon = "mouse-pointer" }),
+        Move = Window:AddTab({ Title = "Движение", Icon = "move" }),
+        Shield = Window:AddTab({ Title = "Щит", Icon = "shield" }),
+        EspPlayers = Window:AddTab({ Title = "ESP Игроков", Icon = "user" }),
+        EspBots = Window:AddTab({ Title = "ESP Ботов (E)", Icon = "users" }),
+        PvP = Window:AddTab({ Title = "PvP", Icon = "crosshair" }),
+        Discord = Window:AddTab({ Title = "Discord", Icon = "message-circle" }),
+        Modules = Window:AddTab({ Title = "Модули", Icon = "code" }),
+        Settings = Window:AddTab({ Title = "Настройки", Icon = "settings" })
     }
 
     -- ГЛАВНАЯ
     Tabs.Main:AddParagraph({
-        Title = "⚡ KSAS ULTIMATE v8.2",
-        Content = "🔥 Fluent UI\n🔒 License Active\n🌐 Discord Control\n📦 Chests Full Map\n🖱️ Macros (F1/F2/F3)\n👆 RightControl = свернуть"
+        Title = "KSAS ULTIMATE v8.3",
+        Content = "Fluent UI\nLicense Active\nDiscord Control\nChests Full Map\nMacros (F1/F2/F3)\nRightControl = свернуть"
     })
 
-    Tabs.Main:AddSection("🎯 Горячие клавиши")
+    Tabs.Main:AddSection("Горячие клавиши")
     Tabs.Main:AddParagraph({
-        Title = "⌨️ Клавиши",
+        Title = "Клавиши",
         Content = "2 = Сохранить метку 1\n3 = Сохранить метку 2\n4 = ТП в метку 1\n5 = ТП в метку 2\nZ = PvP ТП за спину\nF1 = Запись макроса старт/стоп\nF2 = Стоп (запись или воспроизведение)\nF3 = Play/Stop макроса\nRightControl = свернуть меню"
     })
 
     -- МЕТКИ
-    Tabs.Marks:AddSection("📍 Слот 1")
+    Tabs.Marks:AddSection("Слот 1")
     Tabs.Marks:AddButton({
-        Title = "💾 Сохранить слот 1",
+        Title = "Сохранить слот 1",
         Description = "Клавиша 2",
         Callback = function()
             local char = player.Character
@@ -751,16 +751,16 @@ local function launchMainScript()
             local root = char:FindFirstChild("HumanoidRootPart")
             if root then
                 savedPositions[1] = root.Position
-                Fluent:Notify({ Title = "📍 Метка 1", Content = "Сохранено!", Duration = 2 })
+                Fluent:Notify({ Title = "Метка 1", Content = "Сохранено!", Duration = 2 })
             end
         end
     })
     Tabs.Marks:AddButton({
-        Title = "📤 Телепорт в слот 1",
+        Title = "Телепорт в слот 1",
         Description = "Клавиша 4",
         Callback = function()
             if not savedPositions[1] then
-                Fluent:Notify({ Title = "❌ Метка 1", Content = "Пусто!", Duration = 2 })
+                Fluent:Notify({ Title = "Метка 1", Content = "Пусто!", Duration = 2 })
                 return
             end
             local char = player.Character
@@ -770,9 +770,9 @@ local function launchMainScript()
             end
         end
     })
-    Tabs.Marks:AddSection("📍 Слот 2")
+    Tabs.Marks:AddSection("Слот 2")
     Tabs.Marks:AddButton({
-        Title = "💾 Сохранить слот 2",
+        Title = "Сохранить слот 2",
         Description = "Клавиша 3",
         Callback = function()
             local char = player.Character
@@ -780,16 +780,16 @@ local function launchMainScript()
             local root = char:FindFirstChild("HumanoidRootPart")
             if root then
                 savedPositions[2] = root.Position
-                Fluent:Notify({ Title = "📍 Метка 2", Content = "Сохранено!", Duration = 2 })
+                Fluent:Notify({ Title = "Метка 2", Content = "Сохранено!", Duration = 2 })
             end
         end
     })
     Tabs.Marks:AddButton({
-        Title = "📤 Телепорт в слот 2",
+        Title = "Телепорт в слот 2",
         Description = "Клавиша 5",
         Callback = function()
             if not savedPositions[2] then
-                Fluent:Notify({ Title = "❌ Метка 2", Content = "Пусто!", Duration = 2 })
+                Fluent:Notify({ Title = "Метка 2", Content = "Пусто!", Duration = 2 })
                 return
             end
             local char = player.Character
@@ -801,16 +801,16 @@ local function launchMainScript()
     })
 
     -- КОТЕНОК
-    Tabs.Stalker:AddSection("⚙️ Настройки")
+    Tabs.Stalker:AddSection("Настройки")
     Tabs.Stalker:AddSlider("StalkDist", {
-        Title = "📏 Дистанция за спиной",
+        Title = "Дистанция за спиной",
         Default = 3, Min = 1, Max = 6, Rounding = 1,
         Callback = function(Value) STALK_DISTANCE = Value end
     })
-    Tabs.Stalker:AddSection("👥 Игроки")
+    Tabs.Stalker:AddSection("Игроки")
 
     local stalkerDropdown = Tabs.Stalker:AddDropdown("StalkerTarget", {
-        Title = "🎯 Выбери цель",
+        Title = "Выбери цель",
         Values = {}, Multi = false, Default = "",
         Callback = function(Value)
             if Value == "" then return end
@@ -818,7 +818,7 @@ local function launchMainScript()
                 if p.Name == Value and p ~= player then
                     stalking = true
                     stalkTarget = p
-                    Fluent:Notify({ Title = "🐱 Котенок", Content = "Цель: " .. p.Name, Duration = 2 })
+                    Fluent:Notify({ Title = "Котенок", Content = "Цель: " .. p.Name, Duration = 2 })
                     return
                 end
             end
@@ -834,41 +834,41 @@ local function launchMainScript()
     end
     refreshStalkerList()
 
-    Tabs.Stalker:AddButton({ Title = "🔄 Обновить список", Callback = function() refreshStalkerList() end })
+    Tabs.Stalker:AddButton({ Title = "Обновить список", Callback = function() refreshStalkerList() end })
     Tabs.Stalker:AddButton({
-        Title = "⏹️ ВЫКЛ Котенок",
+        Title = "ВЫКЛ Котенок",
         Callback = function()
             stalking = false
             stalkTarget = nil
-            Fluent:Notify({ Title = "🐱 Котенок", Content = "ВЫКЛ", Duration = 2 })
+            Fluent:Notify({ Title = "Котенок", Content = "ВЫКЛ", Duration = 2 })
         end
     })
 
     -- КОТЕНОК-БОТ
-    Tabs.Bot:AddSection("⚙️ Настройки")
+    Tabs.Bot:AddSection("Настройки")
     Tabs.Bot:AddSlider("BotDist", {
-        Title = "📏 Дистанция за спиной бота",
+        Title = "Дистанция за спиной бота",
         Default = 3, Min = 1, Max = 6, Rounding = 1,
         Callback = function(Value) botDistance = Value end
     })
     Tabs.Bot:AddToggle("BotAim", {
-        Title = "🎯 Аимбот на ноги (авто)",
+        Title = "Аимбот на ноги (авто)",
         Default = true,
         Callback = function(Value) botAimEnabled = Value end
     })
     Tabs.Bot:AddToggle("AutoButtons", {
-        Title = "⌨️ Авто-кнопки (ЛКМ×3 + M2 + R+G+C+X+V)",
+        Title = "Авто-кнопки (ЛКМ x3 + M2 + R+G+C+X+V)",
         Default = false,
         Callback = function(Value) autoButtonsEnabled = Value end
     })
     Tabs.Bot:AddSlider("ClickInterval", {
-        Title = "🖱️ Пауза между ЛКМ (сек)",
+        Title = "Пауза между ЛКМ (сек)",
         Default = 1.0, Min = 0.3, Max = 2.0, Rounding = 0.1,
         Callback = function(Value) clickInterval = Value end
     })
-    Tabs.Bot:AddSection("🎮 Управление")
+    Tabs.Bot:AddSection("Управление")
     Tabs.Bot:AddButton({
-        Title = "📌 ЗАПОМНИТЬ бота рядом",
+        Title = "ЗАПОМНИТЬ бота рядом",
         Callback = function()
             local char = player.Character
             if not char then return end
@@ -888,75 +888,75 @@ local function launchMainScript()
                 end
             end
             if not nearest then
-                Fluent:Notify({ Title = "❌ Ошибка", Content = "Не нашёл бота рядом", Duration = 2 })
+                Fluent:Notify({ Title = "Ошибка", Content = "Не нашёл бота рядом", Duration = 2 })
                 return
             end
             botTargetName = nearest.Name
-            Fluent:Notify({ Title = "✅ Запомнено", Content = botTargetName, Duration = 3 })
+            Fluent:Notify({ Title = "Запомнено", Content = botTargetName, Duration = 3 })
         end
     })
     Tabs.Bot:AddButton({
-        Title = "▶️ СТАРТ Котенок-Бот",
+        Title = "СТАРТ Котенок-Бот",
         Callback = function()
             if not botTargetName then
-                Fluent:Notify({ Title = "❌ Ошибка", Content = "Сначала ЗАПОМНИ бота!", Duration = 2 })
+                Fluent:Notify({ Title = "Ошибка", Content = "Сначала ЗАПОМНИ бота!", Duration = 2 })
                 return
             end
             botStalking = true
             local target = findNearestBotWithName(botTargetName)
             if target then botTarget = target end
-            Fluent:Notify({ Title = "🐱 Котенок-Бот", Content = "ВКЛ: " .. botTargetName, Duration = 2 })
+            Fluent:Notify({ Title = "Котенок-Бот", Content = "ВКЛ: " .. botTargetName, Duration = 2 })
         end
     })
     Tabs.Bot:AddButton({
-        Title = "⏹️ СТОП Котенок-Бот",
+        Title = "СТОП Котенок-Бот",
         Callback = function()
             botStalking = false
             botTarget = nil
-            Fluent:Notify({ Title = "🐱 Котенок-Бот", Content = "ВЫКЛ", Duration = 2 })
+            Fluent:Notify({ Title = "Котенок-Бот", Content = "ВЫКЛ", Duration = 2 })
         end
     })
 
     -- СУНДУКИ
-    Tabs.Chests:AddSection("📦 Управление")
+    Tabs.Chests:AddSection("Управление")
     Tabs.Chests:AddParagraph({
-        Title = "📝 Как использовать",
-        Content = "1️⃣ Нажми СКАН (ищет по ВСЕЙ карте)\n2️⃣ Нажми СТАРТ СБОРА\n3️⃣ Бот сам ТП ко всем сундукам"
+        Title = "Как использовать",
+        Content = "1. Нажми СКАН (ищет по ВСЕЙ карте)\n2. Нажми СТАРТ СБОРА\n3. Бот сам ТП ко всем сундукам"
     })
     Tabs.Chests:AddButton({
-        Title = "📋 СКАН (все сундуки карты)",
+        Title = "СКАН (все сундуки карты)",
         Callback = function()
             local ok, msg = scanChests()
             if ok then
-                Fluent:Notify({ Title = "✅ Найдено", Content = msg, Duration = 3 })
+                Fluent:Notify({ Title = "Найдено", Content = msg, Duration = 3 })
             else
-                Fluent:Notify({ Title = "❌ Ошибка", Content = msg or "Ошибка", Duration = 3 })
+                Fluent:Notify({ Title = "Ошибка", Content = msg or "Ошибка", Duration = 3 })
             end
         end
     })
     Tabs.Chests:AddButton({
-        Title = "▶️ СТАРТ СБОРА",
+        Title = "СТАРТ СБОРА",
         Callback = function()
             if #chestsList == 0 then
                 local ok = scanChests()
                 if not ok then
-                    Fluent:Notify({ Title = "❌ Ошибка", Content = "Сундуки не найдены", Duration = 2 })
+                    Fluent:Notify({ Title = "Ошибка", Content = "Сундуки не найдены", Duration = 2 })
                     return
                 end
             end
             farming = true
-            Fluent:Notify({ Title = "📦 Сундуки", Content = "Сбор ВКЛ (" .. #chestsList .. ")", Duration = 2 })
+            Fluent:Notify({ Title = "Сундуки", Content = "Сбор ВКЛ (" .. #chestsList .. ")", Duration = 2 })
         end
     })
     Tabs.Chests:AddButton({
-        Title = "⏹️ СТОП СБОРА",
+        Title = "СТОП СБОРА",
         Callback = function()
             farming = false
-            Fluent:Notify({ Title = "📦 Сундуки", Content = "Сбор ВЫКЛ", Duration = 2 })
+            Fluent:Notify({ Title = "Сундуки", Content = "Сбор ВЫКЛ", Duration = 2 })
         end
     })
 
-    -- ==================== МАКРОСЫ (UI + логика) ====================
+    -- ==================== МАКРОСЫ ====================
     local function sanitizeName(n)
         return (tostring(n or ""):gsub("[^%w_%-]", "_"))
     end
@@ -1015,31 +1015,25 @@ local function launchMainScript()
         end
     end
 
-    -- === Воспроизведение: функции движения курсора и кликов ===
     local function moveCursorAbs(x, y)
-        -- 1) mousemoveabs (нативный абсолютный)
         if mousemoveabs then
             local ok = pcall(mousemoveabs, x, y)
             if ok then return true end
         end
-        -- 2) setmousepos
         if setmousepos then
             local ok = pcall(setmousepos, x, y)
             if ok then return true end
         end
-        -- 3) syn.mousemoverel
         if syn and syn.mousemoverel then
             local cur = uis:GetMouseLocation()
             local ok = pcall(syn.mousemoverel, x - cur.X, y - cur.Y)
             if ok then return true end
         end
-        -- 4) mousemoverel (относительный)
         if mousemoverel then
             local cur = uis:GetMouseLocation()
             local ok = pcall(mousemoverel, x - cur.X, y - cur.Y)
             if ok then return true end
         end
-        -- 5) Фолбэк VIM
         pcall(function() vim:SendMouseMoveEvent(x, y, game) end)
         return false
     end
@@ -1100,15 +1094,15 @@ local function launchMainScript()
     local function startPlaying(events, speed, loop)
         if macroPlaying then return end
         if not events or #events == 0 then
-            Fluent:Notify({ Title = "❌ Макрос", Content = "Пустой макрос", Duration = 2 })
+            Fluent:Notify({ Title = "Макрос", Content = "Пустой макрос", Duration = 2 })
             return
         end
         macroPlaying = true
         local myToken = playingToken + 1
         playingToken = myToken
         Fluent:Notify({
-            Title = "▶️ Макрос",
-            Content = string.format("Скорость ×%.2f %s", speed, loop and "(loop)" or ""),
+            Title = "Макрос",
+            Content = string.format("Скорость x%.2f %s", speed, loop and "(loop)" or ""),
             Duration = 2
         })
         task.spawn(function()
@@ -1119,7 +1113,7 @@ local function launchMainScript()
             until (not macroPlaying) or (playingToken ~= myToken) or (not macroLoop)
             if playingToken == myToken then
                 macroPlaying = false
-                Fluent:Notify({ Title = "⏹️ Макрос", Content = "Воспроизведение завершено", Duration = 2 })
+                Fluent:Notify({ Title = "Макрос", Content = "Воспроизведение завершено", Duration = 2 })
             end
         end)
     end
@@ -1128,14 +1122,13 @@ local function launchMainScript()
         if not macroPlaying then return end
         macroPlaying = false
         playingToken = playingToken + 1
-        Fluent:Notify({ Title = "⏹️ Макрос", Content = "Остановлен", Duration = 2 })
+        Fluent:Notify({ Title = "Макрос", Content = "Остановлен", Duration = 2 })
     end
 
-    -- === Запись: polling GetMouseLocation ===
     local function startRecording()
         if macroRecording then return end
         if macroPlaying then
-            Fluent:Notify({ Title = "⏹️ Макрос", Content = "Сначала останови воспроизведение", Duration = 2 })
+            Fluent:Notify({ Title = "Макрос", Content = "Сначала останови воспроизведение", Duration = 2 })
             return
         end
         macroEvents = {}
@@ -1146,7 +1139,6 @@ local function launchMainScript()
         if recordingEndConn then recordingEndConn:Disconnect() end
         if recordingMoveConn then recordingMoveConn:Disconnect() end
 
-        -- Клики через InputBegan
         recordingConn = uis.InputBegan:Connect(function(input, gpe)
             if not macroRecording then return end
             if input.UserInputType == Enum.UserInputType.MouseButton1
@@ -1177,7 +1169,6 @@ local function launchMainScript()
             end
         end)
 
-        -- Движение: polling каждый кадр
         local lastX, lastY = -1000, -1000
         recordingMoveConn = runService.RenderStepped:Connect(function()
             if not macroRecording then return end
@@ -1194,8 +1185,8 @@ local function launchMainScript()
         end)
 
         Fluent:Notify({
-            Title = "🔴 Запись",
-            Content = "Пишу мышь (" .. macroStopKey.Name .. " — стоп)",
+            Title = "Запись",
+            Content = "Пишу мышь (" .. macroStopKey.Name .. " - стоп)",
             Duration = 3
         })
     end
@@ -1209,8 +1200,8 @@ local function launchMainScript()
 
         local dur = (#macroEvents > 0) and macroEvents[#macroEvents].t or 0
         Fluent:Notify({
-            Title = "⏹️ Запись",
-            Content = string.format("Стоп. Событий: %d, %.2fs", #macroEvents, dur),
+            Title = "Запись",
+            Content = string.format("Стоп. Событий: %d, %.2f сек", #macroEvents, dur),
             Duration = 3
         })
 
@@ -1219,48 +1210,47 @@ local function launchMainScript()
                 name = "macro_" .. tostring(os.time())
             end
             if saveMacroToDisk(name, macroEvents) then
-                Fluent:Notify({ Title = "💾 Макрос", Content = "Сохранён: " .. sanitizeName(name), Duration = 3 })
+                Fluent:Notify({ Title = "Макрос", Content = "Сохранён: " .. sanitizeName(name), Duration = 3 })
             else
-                Fluent:Notify({ Title = "❌ Макрос", Content = "Ошибка сохранения", Duration = 3 })
+                Fluent:Notify({ Title = "Макрос", Content = "Ошибка сохранения", Duration = 3 })
             end
         end
     end
 
-    -- UI макросов
-    Tabs.Macros:AddSection("🔴 Запись")
+    Tabs.Macros:AddSection("Запись")
     Tabs.Macros:AddInput("MacroNameInput", {
-        Title = "📝 Имя макроса",
+        Title = "Имя макроса",
         Placeholder = "например: pvp_combo",
         Default = "",
         Callback = function(Value) macroNameValue = Value end
     })
     Tabs.Macros:AddButton({
-        Title = "🔴 НАЧАТЬ ЗАПИСЬ (F1)",
+        Title = "НАЧАТЬ ЗАПИСЬ (F1)",
         Callback = function() startRecording() end
     })
     Tabs.Macros:AddButton({
-        Title = "⏹️ ОСТАНОВИТЬ И СОХРАНИТЬ (F2)",
+        Title = "ОСТАНОВИТЬ И СОХРАНИТЬ (F2)",
         Callback = function() stopRecording(true, macroNameValue) end
     })
     Tabs.Macros:AddButton({
-        Title = "⏹️ ОСТАНОВИТЬ БЕЗ СОХРАНЕНИЯ",
+        Title = "ОСТАНОВИТЬ БЕЗ СОХРАНЕНИЯ",
         Callback = function() stopRecording(false, nil) end
     })
 
-    Tabs.Macros:AddSection("▶️ Воспроизведение")
+    Tabs.Macros:AddSection("Воспроизведение")
     Tabs.Macros:AddSlider("MacroSpeed", {
-        Title = "⏩ Скорость воспроизведения (×)",
+        Title = "Скорость воспроизведения (x)",
         Default = 1.0, Min = 0.1, Max = 10, Rounding = 0.1,
         Callback = function(Value) macroPlaySpeed = Value end
     })
     Tabs.Macros:AddToggle("MacroLoop", {
-        Title = "🔁 Зациклить воспроизведение",
+        Title = "Зациклить воспроизведение",
         Default = false,
         Callback = function(v) macroLoop = v end
     })
 
     local macroDropdown = Tabs.Macros:AddDropdown("MacroSelect", {
-        Title = "📁 Выбери макрос",
+        Title = "Выбери макрос",
         Values = {},
         Default = "",
         Multi = false,
@@ -1278,88 +1268,56 @@ local function launchMainScript()
     updateMacroDropdown()
 
     Tabs.Macros:AddButton({
-        Title = "▶️ ВОСПРОИЗВЕСТИ (F3)",
+        Title = "ВОСПРОИЗВЕСТИ (F3)",
         Callback = function()
             local name = macroSelected
             if not name or name == "(нет макросов)" then
-                Fluent:Notify({ Title = "❌ Макрос", Content = "Не выбран макрос", Duration = 2 })
+                Fluent:Notify({ Title = "Макрос", Content = "Не выбран макрос", Duration = 2 })
                 return
             end
             local data = loadMacroFromDisk(name)
             if not data or not data.events then
-                Fluent:Notify({ Title = "❌ Макрос", Content = "Не удалось загрузить", Duration = 2 })
+                Fluent:Notify({ Title = "Макрос", Content = "Не удалось загрузить", Duration = 2 })
                 return
             end
             startPlaying(data.events, macroPlaySpeed, macroLoop)
         end
     })
     Tabs.Macros:AddButton({
-        Title = "⏹️ ОСТАНОВИТЬ ВОСПРОИЗВЕДЕНИЕ (F2)",
+        Title = "ОСТАНОВИТЬ ВОСПРОИЗВЕДЕНИЕ (F2)",
         Callback = function() stopPlaying() end
     })
 
-    Tabs.Macros:AddSection("📂 Управление")
+    Tabs.Macros:AddSection("Управление")
     Tabs.Macros:AddButton({
-        Title = "🔄 Обновить список",
+        Title = "Обновить список",
         Callback = function()
             updateMacroDropdown()
-            Fluent:Notify({ Title = "🔄 Макросы", Content = "Найдено: " .. #macroList, Duration = 2 })
+            Fluent:Notify({ Title = "Макросы", Content = "Найдено: " .. #macroList, Duration = 2 })
         end
     })
     Tabs.Macros:AddButton({
-        Title = "🗑️ Удалить выбранный макрос",
+        Title = "Удалить выбранный макрос",
         Callback = function()
             if macroSelected and macroSelected ~= "(нет макросов)" then
                 deleteMacroFromDisk(macroSelected)
                 macroSelected = nil
                 updateMacroDropdown()
-                Fluent:Notify({ Title = "🗑️ Макрос", Content = "Удалён", Duration = 2 })
+                Fluent:Notify({ Title = "Макрос", Content = "Удалён", Duration = 2 })
             end
         end
     })
 
-    Tabs.Macros:AddSection("🧪 Тест API")
-    Tabs.Macros:AddButton({
-        Title = "Проверить доступные API мыши",
-        Callback = function()
-            local apis = {
-                "mousemoveabs", "mousemoverel", "setmousepos",
-                "mouse1click", "mouse1down", "mouse1up",
-                "mouse2click", "mouse2down", "mouse2up",
-                "mouse3click",
-            }
-            local found = {}
-            for _, n in ipairs(apis) do
-                local v = _G[n] or (getfenv and getfenv()[n])
-                table.insert(found, n .. ": " .. (type(v) == "function" and "✅" or "❌"))
-            end
-            local isSyn = syn and syn.mousemoverel and "✅" or "❌"
-            local isKrnl = KRNL_LOADED and "✅" or "❌"
-            Fluent:Notify({
-                Title = "🧪 Mouse API",
-                Content = table.concat(found, "  |  ") .. "  |  syn.mousemoverel: " .. isSyn,
-                Duration = 6
-            })
-        end
-    })
-
-    Tabs.Macros:AddSection("ℹ️ Инфо")
+    Tabs.Macros:AddSection("Инфо")
     Tabs.Macros:AddParagraph({
-        Title = "📌 Как использовать",
-        Content = "1) Введи имя макроса\n" ..
-                  "2) F1 — старт записи мыши\n" ..
-                  "3) Подергай мышь и покликай в игре\n" ..
-                  "4) F2 — стоп и сохранение\n" ..
-                  "5) Выбери макрос в дропдауне\n" ..
-                  "6) Задай скорость ×N (1 = как записано, 2 = ×2, 0.5 = ×0.5)\n" ..
-                  "7) F3 — воспроизвести\n\n" ..
-                  "💾 Папка: " .. MACROS_FOLDER
+        Title = "Как использовать",
+        Content = "1. Введи имя макроса\n2. F1 - старт записи мыши\n3. Подергай мышь и покликай в игре\n4. F2 - стоп и сохранение\n5. Выбери макрос в дропдауне\n6. Задай скорость xN\n7. F3 - воспроизвести\n\nПапка: " .. MACROS_FOLDER
     })
 
     -- ДВИЖЕНИЕ
-    Tabs.Move:AddSection("⚡ Скорость")
+    Tabs.Move:AddSection("Скорость")
     Tabs.Move:AddSlider("SpeedSlider", {
-        Title = "🏃 Speed", Default = 100, Min = 16, Max = 500, Rounding = 1,
+        Title = "Speed", Default = 100, Min = 16, Max = 500, Rounding = 1,
         Callback = function(Value)
             speedValue = Value
             if speedEnabled then
@@ -1382,7 +1340,7 @@ local function launchMainScript()
             end
         end
     })
-    Tabs.Move:AddSection("🕊️ Полёт")
+    Tabs.Move:AddSection("Полёт")
     Tabs.Move:AddToggle("FlyToggle", {
         Title = "Fly вкл/выкл", Default = false,
         Callback = function(state)
@@ -1439,7 +1397,7 @@ local function launchMainScript()
             end
         end
     })
-    Tabs.Move:AddSection("🚪 Noclip")
+    Tabs.Move:AddSection("Noclip")
     Tabs.Move:AddToggle("NoclipToggle", {
         Title = "Noclip вкл/выкл", Default = false,
         Callback = function(state)
@@ -1467,12 +1425,12 @@ local function launchMainScript()
     })
 
     -- ЩИТ
-    Tabs.Shield:AddSection("🛡️ Радиус")
+    Tabs.Shield:AddSection("Радиус")
     Tabs.Shield:AddSlider("ShieldRadius", {
         Title = "Радиус щита", Default = 10, Min = 5, Max = 30, Rounding = 1,
         Callback = function(Value) SHIELD_RADIUS = Value end
     })
-    Tabs.Shield:AddSection("🎯 Цели")
+    Tabs.Shield:AddSection("Цели")
     Tabs.Shield:AddDropdown("ShieldTargets", {
         Title = "Кого отталкивать",
         Values = {"Все", "Игроки", "Боты"},
@@ -1484,12 +1442,12 @@ local function launchMainScript()
         end
     })
     Tabs.Shield:AddToggle("ShieldToggle", {
-        Title = "🛡️ Неприступность вкл/выкл", Default = false,
+        Title = "Неприступность вкл/выкл", Default = false,
         Callback = function(Value) shieldEnabled = Value end
     })
 
     -- ESP ИГРОКОВ
-    Tabs.EspPlayers:AddSection("👁️ Управление")
+    Tabs.EspPlayers:AddSection("Управление")
     Tabs.EspPlayers:AddToggle("EspPlayersToggle", {
         Title = "ESP игроков (мёртвые + респавн)", Default = false,
         Callback = function(state)
@@ -1518,7 +1476,7 @@ local function launchMainScript()
         end
     end)
 
-    Tabs.EspPlayers:AddSection("🎨 Цвет ESP")
+    Tabs.EspPlayers:AddSection("Цвет ESP")
     Tabs.EspPlayers:AddColorpicker("EspPlayersColor", {
         Title = "Цвет ESP игроков",
         Default = Color3.fromRGB(255, 0, 0),
@@ -1530,74 +1488,15 @@ local function launchMainScript()
         end
     })
 
-    Tabs.EspPlayers:AddSection("🌈 Быстрые цвета")
-    Tabs.EspPlayers:AddDropdown("EspPlayerPreset", {
-        Title = "Пресет цвета",
-        Values = {
-            "🔴 Красный", "🟠 Оранжевый", "🟡 Жёлтый", "🟢 Зелёный",
-            "🔵 Синий", "🟣 Фиолетовый", "🩷 Розовый", "🩵 Голубой",
-            "🤍 Белый", "🖤 Чёрный", "💛 Золотой", "🧡 Коралл",
-            "💚 Лайм", "💜 Лаванда", "🩶 Серебро", "🏆 Бронза",
-            "🌊 Морской", "🌅 Закат", "🌌 Космос", "💎 Аквамарин",
-            "🔥 Огненный", "❄️ Ледяной", "🌈 Радужный", "🩷 Маджента",
-            "🤎 Коричневый", "💗 Розовый-неон", "🧡 Тыква", "🍀 Клевер",
-            "🌺 Сакура", "💠 Циан", "🌠 Комета", "🟪 Неон-фиолет"
-        },
-        Multi = false, Default = "🔴 Красный",
-        Callback = function(Value)
-            local colorMap = {
-                ["🔴 Красный"] = Color3.fromRGB(255, 0, 0),
-                ["🟠 Оранжевый"] = Color3.fromRGB(255, 130, 0),
-                ["🟡 Жёлтый"] = Color3.fromRGB(255, 255, 0),
-                ["🟢 Зелёный"] = Color3.fromRGB(0, 255, 0),
-                ["🔵 Синий"] = Color3.fromRGB(0, 100, 255),
-                ["🟣 Фиолетовый"] = Color3.fromRGB(180, 0, 255),
-                ["🩷 Розовый"] = Color3.fromRGB(255, 100, 200),
-                ["🩵 Голубой"] = Color3.fromRGB(0, 200, 255),
-                ["🤍 Белый"] = Color3.fromRGB(255, 255, 255),
-                ["🖤 Чёрный"] = Color3.fromRGB(20, 20, 20),
-                ["💛 Золотой"] = Color3.fromRGB(255, 215, 0),
-                ["🧡 Коралл"] = Color3.fromRGB(255, 100, 80),
-                ["💚 Лайм"] = Color3.fromRGB(150, 255, 0),
-                ["💜 Лаванда"] = Color3.fromRGB(180, 150, 255),
-                ["🩶 Серебро"] = Color3.fromRGB(192, 192, 192),
-                ["🏆 Бронза"] = Color3.fromRGB(205, 127, 50),
-                ["🌊 Морской"] = Color3.fromRGB(0, 255, 200),
-                ["🌅 Закат"] = Color3.fromRGB(255, 100, 50),
-                ["🌌 Космос"] = Color3.fromRGB(80, 0, 150),
-                ["💎 Аквамарин"] = Color3.fromRGB(100, 255, 220),
-                ["🔥 Огненный"] = Color3.fromRGB(255, 50, 0),
-                ["❄️ Ледяной"] = Color3.fromRGB(180, 230, 255),
-                ["🌈 Радужный"] = Color3.fromRGB(255, 0, 128),
-                ["🩷 Маджента"] = Color3.fromRGB(255, 0, 200),
-                ["🤎 Коричневый"] = Color3.fromRGB(150, 75, 0),
-                ["💗 Розовый-неон"] = Color3.fromRGB(255, 50, 150),
-                ["🧡 Тыква"] = Color3.fromRGB(255, 117, 24),
-                ["🍀 Клевер"] = Color3.fromRGB(50, 205, 50),
-                ["🌺 Сакура"] = Color3.fromRGB(255, 183, 197),
-                ["💠 Циан"] = Color3.fromRGB(0, 255, 255),
-                ["🌠 Комета"] = Color3.fromRGB(135, 206, 250),
-                ["🟪 Неон-фиолет"] = Color3.fromRGB(200, 0, 255),
-            }
-            local color = colorMap[Value]
-            if color then
-                espColor = color
-                for _, esp in ipairs(espObjects) do
-                    if esp and esp.Parent then esp.FillColor = color end
-                end
-            end
-        end
-    })
-
     Tabs.EspPlayers:AddToggle("EspRainbow", {
-        Title = "🌈 Радужный режим (авто)", Default = false,
+        Title = "Радужный режим (авто)", Default = false,
         Callback = function(state) espRainbow = state end
     })
 
     -- ESP БОТОВ
-    Tabs.EspBots:AddSection("👁️ Управление")
+    Tabs.EspBots:AddSection("Управление")
     Tabs.EspBots:AddToggle("BotEspToggle", {
-        Title = "🤖 ESP ботов С КНОПКОЙ E",
+        Title = "ESP ботов С КНОПКОЙ E",
         Description = "Показывает только NPC с KeyboardKeyCode = E",
         Default = false,
         Callback = function(state)
@@ -1612,26 +1511,26 @@ local function launchMainScript()
                     task.wait(2)
                     updateBotEsp()
                     Fluent:Notify({
-                        Title = "🤖 ESP Ботов",
+                        Title = "ESP Ботов",
                         Content = "ВКЛ | Найдено: " .. #botEspList,
                         Duration = 3
                     })
                 else
                     clearAllBotEsp()
-                    Fluent:Notify({ Title = "🤖 ESP Ботов", Content = "ВЫКЛ", Duration = 2 })
+                    Fluent:Notify({ Title = "ESP Ботов", Content = "ВЫКЛ", Duration = 2 })
                 end
             end)
         end
     })
 
-    Tabs.EspBots:AddSection("⚙️ Настройки")
+    Tabs.EspBots:AddSection("Настройки")
     Tabs.EspBots:AddSlider("BotEspRadius", {
-        Title = "📏 Радиус поиска",
+        Title = "Радиус поиска",
         Default = 6000, Min = 100, Max = 10000, Rounding = 100,
         Callback = function(Value) botEspRadius = Value end
     })
 
-    Tabs.EspBots:AddSection("🎨 Цвет ESP Ботов")
+    Tabs.EspBots:AddSection("Цвет ESP Ботов")
     Tabs.EspBots:AddColorpicker("BotEspColor", {
         Title = "Свой цвет",
         Default = Color3.fromRGB(0, 255, 100),
@@ -1644,11 +1543,11 @@ local function launchMainScript()
     })
 
     Tabs.EspBots:AddToggle("BotEspRainbow", {
-        Title = "🌈 Радужный режим (авто)", Default = false,
+        Title = "Радужный режим (авто)", Default = false,
         Callback = function(state) botEspRainbow = state end
     })
 
-    Tabs.EspBots:AddSection("🎯 Боты с E рядом (ТП)")
+    Tabs.EspBots:AddSection("Боты с E рядом (ТП)")
     local botTpDropdown = Tabs.EspBots:AddDropdown("BotTpList", {
         Title = "Выбери бота для ТП",
         Values = {}, Multi = false, Default = "",
@@ -1660,7 +1559,7 @@ local function launchMainScript()
                         local myRoot = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
                         if myRoot then
                             myRoot.CFrame = CFrame.new(entry.root.Position + Vector3.new(0, 3, 0))
-                            Fluent:Notify({ Title = "🎯 ТП", Content = "К " .. Value, Duration = 2 })
+                            Fluent:Notify({ Title = "ТП", Content = "К " .. Value, Duration = 2 })
                         end
                         return
                     end
@@ -1682,18 +1581,18 @@ local function launchMainScript()
     end
 
     Tabs.EspBots:AddButton({
-        Title = "🔄 Обновить список ботов с E",
+        Title = "Обновить список ботов с E",
         Callback = function()
             pcall(function()
                 updateBotEsp()
                 refreshBotTpList()
-                Fluent:Notify({ Title = "🔄 Обновлено", Content = "Ботов с E: " .. #botEspList, Duration = 2 })
+                Fluent:Notify({ Title = "Обновлено", Content = "Ботов с E: " .. #botEspList, Duration = 2 })
             end)
         end
     })
 
     -- PvP
-    Tabs.PvP:AddSection("👥 Выбери игрока")
+    Tabs.PvP:AddSection("Выбери игрока")
     local pvpDropdown = Tabs.PvP:AddDropdown("PvpTarget", {
         Title = "Цель для ТП",
         Values = {}, Multi = false, Default = "",
@@ -1704,7 +1603,7 @@ local function launchMainScript()
                     pvpTarget = p
                     pvpBotTarget = nil
                     pvpTargetName = nil
-                    Fluent:Notify({ Title = "🎯 PvP", Content = "Цель: " .. p.Name, Duration = 2 })
+                    Fluent:Notify({ Title = "PvP", Content = "Цель: " .. p.Name, Duration = 2 })
                     return
                 end
             end
@@ -1720,38 +1619,38 @@ local function launchMainScript()
     end
     refreshPvpList()
 
-    Tabs.PvP:AddButton({ Title = "🔄 Обновить список", Callback = function() refreshPvpList() end })
-    Tabs.PvP:AddSection("🎯 Действие")
+    Tabs.PvP:AddButton({ Title = "Обновить список", Callback = function() refreshPvpList() end })
+    Tabs.PvP:AddSection("Действие")
     Tabs.PvP:AddButton({
-        Title = "🎯 ТП за спину + камера",
+        Title = "ТП за спину + камера",
         Description = "Клавиша Z",
         Callback = function() doPvpTeleport() end
     })
 
     -- ==================== DISCORD CONTROL ====================
-    Tabs.Discord:AddSection("🌐 Discord Remote Control")
+    Tabs.Discord:AddSection("Discord Remote Control")
     Tabs.Discord:AddParagraph({
-        Title = "📝 Команды",
+        Title = "Команды",
         Content = "Пиши в канал Discord, куда подключён webhook:\n" ..
-                  "!tp <ник> — ТП к игроку\n" ..
-                  "!speed <n> — скорость\n" ..
-                  "!fly on/off — полёт\n" ..
-                  "!noclip — вкл/выкл noclip\n" ..
-                  "!stalk <ник> — котёнок за игроком\n" ..
-                  "!bot <имя> — котёнок-бот\n" ..
-                  "!chest scan/start/stop — сундуки\n" ..
-                  "!shield — щит вкл/выкл\n" ..
-                  "!esp players/bots — ESP\n" ..
-                  "!save <1|2> — сохранить метку\n" ..
-                  "!tpto <1|2> — ТП в метку\n" ..
+                  "!tp <ник> - ТП к игроку\n" ..
+                  "!speed <n> - скорость\n" ..
+                  "!fly on/off - полёт\n" ..
+                  "!noclip - вкл/выкл noclip\n" ..
+                  "!stalk <ник> - котёнок за игроком\n" ..
+                  "!bot <имя> - котёнок-бот\n" ..
+                  "!chest scan/start/stop - сундуки\n" ..
+                  "!shield - щит вкл/выкл\n" ..
+                  "!esp players/bots - ESP\n" ..
+                  "!save <1|2> - сохранить метку\n" ..
+                  "!tpto <1|2> - ТП в метку\n" ..
                   "!macro rec/stop/play <имя>/stopall/speed <n>\n" ..
-                  "!lua <код> — выполнить Lua\n" ..
-                  "!stop — всё выключить"
+                  "!lua <код> - выполнить Lua\n" ..
+                  "!stop - всё выключить"
     })
 
     local discordEnabled = true
     Tabs.Discord:AddToggle("DiscordToggle", {
-        Title = "🌐 Discord Control вкл/выкл",
+        Title = "Discord Control вкл/выкл",
         Default = true,
         Callback = function(state) discordEnabled = state end
     })
@@ -1788,7 +1687,7 @@ local function launchMainScript()
 
         local function notify(msg)
             pcall(function()
-                Fluent:Notify({ Title = "🌐 Discord", Content = msg, Duration = 3 })
+                Fluent:Notify({ Title = "Discord", Content = msg, Duration = 3 })
             end)
         end
 
@@ -1832,7 +1731,7 @@ local function launchMainScript()
                 if p.Name:lower():find(name:lower(), 1, true) and p ~= player then
                     stalkTarget = p
                     stalking = true
-                    notify("Котёнок → " .. p.Name)
+                    notify("Котёнок к " .. p.Name)
                     return
                 end
             end
@@ -1845,7 +1744,7 @@ local function launchMainScript()
             botStalking = true
             local t = findNearestBotWithName(name)
             if t then botTarget = t end
-            notify("Котёнок-Бот → " .. name)
+            notify("Котёнок-Бот к " .. name)
 
         elseif cmd == "stop" then
             stalking = false; stalkTarget = nil
@@ -1940,7 +1839,7 @@ local function launchMainScript()
             elseif sub == "speed" then
                 local v = tonumber(args[2]) or 1
                 macroPlaySpeed = v
-                notify("Скорость макросов: ×" .. v)
+                notify("Скорость макросов: x" .. v)
             else
                 notify("!macro rec / stop / play <имя> / stopall / speed <n>")
             end
@@ -2057,75 +1956,75 @@ local function launchMainScript()
         end
     end
 
-    Tabs.Modules:AddSection("➕ Новый модуль")
+    Tabs.Modules:AddSection("Новый модуль")
     local moduleNameInput = Tabs.Modules:AddInput("ModuleName", {
-        Title = "📝 Название модуля",
+        Title = "Название модуля",
         Placeholder = "Например: AutoFarm",
         Callback = function(Value) end
     })
     local moduleCodeInput = Tabs.Modules:AddInput("ModuleCode", {
-        Title = "💻 Код модуля",
+        Title = "Код модуля",
         Placeholder = "print('Hello!')",
         Callback = function(Value) end
     })
     Tabs.Modules:AddButton({
-        Title = "💾 СОХРАНИТЬ И ЗАПУСТИТЬ",
+        Title = "СОХРАНИТЬ И ЗАПУСТИТЬ",
         Callback = function()
             local name = moduleNameInput.Value
             local code = moduleCodeInput.Value
             if name == "" then
-                Fluent:Notify({ Title = "❌ Ошибка", Content = "Введи название!", Duration = 2 })
+                Fluent:Notify({ Title = "Ошибка", Content = "Введи название!", Duration = 2 })
                 return
             end
             if code == "" then
-                Fluent:Notify({ Title = "❌ Ошибка", Content = "Введи код!", Duration = 2 })
+                Fluent:Notify({ Title = "Ошибка", Content = "Введи код!", Duration = 2 })
                 return
             end
             local cleanName = string.gsub(name, "[^%w_%-]", "_")
             customModules[cleanName] = code
             if hasFileSystem then saveModuleToDisk(cleanName, code) end
             executeModule(cleanName, code)
-            Fluent:Notify({ Title = "✅ Модуль", Content = cleanName .. " запущен", Duration = 3 })
+            Fluent:Notify({ Title = "Модуль", Content = cleanName .. " запущен", Duration = 3 })
         end
     })
 
-    Tabs.Modules:AddSection("📋 Загруженные модули")
+    Tabs.Modules:AddSection("Загруженные модули")
     loadModulesFromDisk()
     for name, code in pairs(customModules) do
         Tabs.Modules:AddButton({
-            Title = "▶️ " .. name,
+            Title = name,
             Callback = function() executeModule(name, code) end
         })
     end
 
     -- НАСТРОЙКИ
-    Tabs.Settings:AddSection("🎨 Тема")
+    Tabs.Settings:AddSection("Тема")
     Tabs.Settings:AddDropdown("ThemeSelect", {
         Title = "Тема меню",
         Values = {"Dark", "Darker", "Light", "Aqua", "Amethyst", "Rose"},
         Default = "Darker", Multi = false,
         Callback = function(Value)
-            Fluent:Notify({ Title = "🎨 Тема", Content = "Перезапусти скрипт для " .. Value, Duration = 4 })
+            Fluent:Notify({ Title = "Тема", Content = "Перезапусти скрипт для " .. Value, Duration = 4 })
         end
     })
-    Tabs.Settings:AddSection("🎨 Акцентный цвет")
+    Tabs.Settings:AddSection("Акцентный цвет")
     Tabs.Settings:AddColorpicker("AccentColor", {
         Title = "Цвет акцента",
         Default = Color3.fromRGB(100, 150, 255),
         Callback = function(color)
-            Fluent:Notify({ Title = "🎨 Цвет", Content = "Изменён", Duration = 1 })
+            Fluent:Notify({ Title = "Цвет", Content = "Изменён", Duration = 1 })
         end
     })
-    Tabs.Settings:AddSection("⌨️ Клавиши")
+    Tabs.Settings:AddSection("Клавиши")
     Tabs.Settings:AddKeybind("MinimizeKeybind", {
         Title = "Свернуть/развернуть меню",
         Mode = "Toggle", Default = "RightControl",
         Callback = function(Value)
-            Fluent:Notify({ Title = "⌨️ Клавиша", Content = "Мин/макс: " .. Value, Duration = 2 })
+            Fluent:Notify({ Title = "Клавиша", Content = "Мин/макс: " .. Value, Duration = 2 })
         end
     })
 
-    Tabs.Settings:AddSection("💾 Сохранение")
+    Tabs.Settings:AddSection("Сохранение")
     SaveManager:SetLibrary(Fluent)
     InterfaceManager:SetLibrary(Fluent)
     SaveManager:IgnoreThemeSettings()
@@ -2337,12 +2236,12 @@ local function launchMainScript()
     end)
 
     Fluent:Notify({
-        Title = "⚡ KSAS ULTIMATE v8.2",
+        Title = "KSAS ULTIMATE v8.3",
         Content = "Загружено! Макросы: F1=rec, F2=stop, F3=play",
         Duration = 5
     })
 
-    print("✅ KSAS ULTIMATE v8.2 загружен!")
+    print("KSAS ULTIMATE v8.3 загружен!")
 end
 
 -- ==================== ЛОГИКА ЛИЦЕНЗИИ ====================
@@ -2351,7 +2250,7 @@ local function tryLogin()
     local hwid = getHWID()
 
     if password == "" then
-        statusLabel.Text = "❌ Введи пароль!"
+        statusLabel.Text = "Введи пароль!"
         statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
         return
     end
@@ -2359,11 +2258,11 @@ local function tryLogin()
     local role = PASSWORDS[password]
 
     if not role then
-        statusLabel.Text = "❌ НЕПРАВИЛЬНЫЙ ПАРОЛЬ!"
+        statusLabel.Text = "НЕПРАВИЛЬНЫЙ ПАРОЛЬ!"
         statusLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
 
         sendWebhook(
-            "❌ НЕПРАВИЛЬНЫЙ ПАРОЛЬ",
+            "НЕПРАВИЛЬНЫЙ ПАРОЛЬ",
             "**Игрок:** `" .. player.Name .. "`\n" ..
             "**UserID:** `" .. player.UserId .. "`\n" ..
             "**HWID:** `" .. hwid .. "`\n" ..
@@ -2379,11 +2278,11 @@ local function tryLogin()
         return
     end
 
-    statusLabel.Text = "✅ Пароль верный!\nЗагрузка..."
+    statusLabel.Text = "Пароль верный!\nЗагрузка..."
     statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
 
     sendWebhook(
-        "✅ УСПЕШНЫЙ ВХОД",
+        "УСПЕШНЫЙ ВХОД",
         "**Игрок:** `" .. player.Name .. "`\n" ..
         "**UserID:** `" .. player.UserId .. "`\n" ..
         "**HWID:** `" .. hwid .. "`\n" ..
@@ -2409,7 +2308,7 @@ passBox.FocusLost:Connect(function(enterPressed)
 end)
 
 sendWebhook(
-    "🚀 СКРИПТ ЗАПУЩЕН",
+    "СКРИПТ ЗАПУЩЕН",
     "**Игрок:** `" .. player.Name .. "`\n" ..
     "**UserID:** `" .. player.UserId .. "`\n" ..
     "**HWID:** `" .. getHWID() .. "`\n" ..
@@ -2417,4 +2316,4 @@ sendWebhook(
     3447003
 )
 
-print("🔒 KSAS License v8.2 загружен")
+print("KSAS License v8.3 загружен")
